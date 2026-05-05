@@ -1,0 +1,220 @@
+CRITICAL - 2026-05-03 00:29:28 --> CodeIgniter\View\Exceptions\ViewException: Invalid file: "patient/add_patient.php"
+[Method: GET, Route: patient/register]
+in SYSTEMPATH\Exceptions\FrameworkException.php on line 39.
+ 1 SYSTEMPATH\View\View.php(228): CodeIgniter\Exceptions\FrameworkException::forInvalidFile('patient/add_patient.php')
+ 2 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('patient/add_patient', [], true)
+ 3 APPPATH\Views\index.php(57): view('patient/add_patient')
+ 4 SYSTEMPATH\View\View.php(240): include('C:\\xampp\\htdocs\\Sistem-Klinik\\app\\Views\\index.php')
+ 5 SYSTEMPATH\View\View.php(243): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 6 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('index', [], true)
+ 7 APPPATH\Controllers\Patient.php(146): view('index', [...])
+ 8 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Patient->register()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Patient))
+10 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 00:30:35 --> Error: Call to a member function get_waiting() on null
+[Method: GET, Route: patient/waiting]
+in APPPATH\Controllers\Patient.php on line 82.
+ 1 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Patient->waiting()
+ 2 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Patient))
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 00:44:04 --> Error: Call to a member function get_waiting() on null
+[Method: GET, Route: patient/waiting]
+in APPPATH\Controllers\Patient.php on line 82.
+ 1 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Patient->waiting()
+ 2 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Patient))
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 00:44:45 --> CodeIgniter\View\Exceptions\ViewException: Invalid file: "patient/add_patient.php"
+[Method: GET, Route: patient/register]
+in SYSTEMPATH\Exceptions\FrameworkException.php on line 39.
+ 1 SYSTEMPATH\View\View.php(228): CodeIgniter\Exceptions\FrameworkException::forInvalidFile('patient/add_patient.php')
+ 2 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('patient/add_patient', [], true)
+ 3 APPPATH\Views\index.php(57): view('patient/add_patient')
+ 4 SYSTEMPATH\View\View.php(240): include('C:\\xampp\\htdocs\\Sistem-Klinik\\app\\Views\\index.php')
+ 5 SYSTEMPATH\View\View.php(243): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 6 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('index', [], true)
+ 7 APPPATH\Controllers\Patient.php(146): view('index', [...])
+ 8 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Patient->register()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Patient))
+10 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:10:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2026-05-03 01:10:04 --> CodeIgniter\Encryption\Exceptions\EncryptionException: Encrypter needs a starter key.
+[Method: GET, Route: patient/register]
+in SYSTEMPATH\Encryption\Encryption.php on line 133.
+ 1 SYSTEMPATH\Encryption\Encryption.php(133): CodeIgniter\Encryption\Exceptions\EncryptionException::forNeedsStarterKey()
+ 2 SYSTEMPATH\Config\Services.php(256): CodeIgniter\Encryption\Encryption->initialize(Object(Config\Encryption))
+ 3 SYSTEMPATH\Config\BaseService.php(334): CodeIgniter\Config\Services::encrypter()
+ 4 APPPATH\Libraries\Bitauth.php(54): CodeIgniter\Config\BaseService::__callStatic('encrypter', [])
+ 5 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 6 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 7 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:10:21 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2026-05-03 01:10:21 --> CodeIgniter\Encryption\Exceptions\EncryptionException: Encrypter needs a starter key.
+[Method: GET, Route: patient/register]
+in SYSTEMPATH\Encryption\Encryption.php on line 133.
+ 1 SYSTEMPATH\Encryption\Encryption.php(133): CodeIgniter\Encryption\Exceptions\EncryptionException::forNeedsStarterKey()
+ 2 SYSTEMPATH\Config\Services.php(256): CodeIgniter\Encryption\Encryption->initialize(Object(Config\Encryption))
+ 3 SYSTEMPATH\Config\BaseService.php(334): CodeIgniter\Config\Services::encrypter()
+ 4 APPPATH\Libraries\Bitauth.php(54): CodeIgniter\Config\BaseService::__callStatic('encrypter', [])
+ 5 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 6 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 7 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:13:25 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:13:25 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 01:13:25 --> ErrorException: Undefined property: Config\App::$cookiePrefix
+[Method: GET, Route: patient/register]
+in APPPATH\Libraries\Bitauth.php on line 93.
+ 1 APPPATH\Libraries\Bitauth.php(93): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: Config\\App::$cookiePrefix', 'C:\\xampp\\htdocs\\Sistem-Klinik\\app\\Libraries\\Bitauth.php', 93)
+ 2 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 4 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 5 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 8 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:13:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:13:30 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 01:13:30 --> ErrorException: Undefined property: Config\App::$cookiePrefix
+[Method: GET, Route: patient/register]
+in APPPATH\Libraries\Bitauth.php on line 93.
+ 1 APPPATH\Libraries\Bitauth.php(93): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: Config\\App::$cookiePrefix', 'C:\\xampp\\htdocs\\Sistem-Klinik\\app\\Libraries\\Bitauth.php', 93)
+ 2 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 4 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 5 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 8 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:13:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:13:52 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-03 01:13:52 --> ErrorException: Undefined property: Config\App::$cookiePrefix
+[Method: GET, Route: patient/register]
+in APPPATH\Libraries\Bitauth.php on line 93.
+ 1 APPPATH\Libraries\Bitauth.php(93): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: Config\\App::$cookiePrefix', 'C:\\xampp\\htdocs\\Sistem-Klinik\\app\\Libraries\\Bitauth.php', 93)
+ 2 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 4 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 5 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 8 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:21:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:21:59 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+WARNING - 2026-05-03 01:21:59 --> [DEPRECATED] Creation of dynamic property App\Controllers\Patient::$bitauth is deprecated in APPPATH\Controllers\Patient.php on line 12.
+ 1 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:22:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:22:33 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+WARNING - 2026-05-03 01:22:33 --> [DEPRECATED] Creation of dynamic property App\Controllers\Patient::$bitauth is deprecated in APPPATH\Controllers\Patient.php on line 12.
+ 1 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:22:37 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:22:37 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+WARNING - 2026-05-03 01:22:37 --> [DEPRECATED] Creation of dynamic property App\Controllers\Patient::$bitauth is deprecated in APPPATH\Controllers\Patient.php on line 12.
+ 1 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:22:38 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:22:38 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+WARNING - 2026-05-03 01:22:38 --> [DEPRECATED] Creation of dynamic property App\Controllers\Patient::$bitauth is deprecated in APPPATH\Controllers\Patient.php on line 12.
+ 1 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2026-05-03 01:22:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+WARNING - 2026-05-03 01:22:56 --> [DEPRECATED] Creation of dynamic property App\Libraries\Bitauth::$_pwd_age_notification is deprecated in APPPATH\Libraries\Bitauth.php on line 68.
+ 1 APPPATH\Controllers\Patient.php(12): App\Libraries\Bitauth->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+WARNING - 2026-05-03 01:22:56 --> [DEPRECATED] Creation of dynamic property App\Controllers\Patient::$bitauth is deprecated in APPPATH\Controllers\Patient.php on line 12.
+ 1 SYSTEMPATH\CodeIgniter.php(921): App\Controllers\Patient->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(26): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
