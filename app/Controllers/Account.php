@@ -493,15 +493,16 @@ public function generate_dummy()
     {
         $db = \Config\Database::connect();
         
-        // 1. Buat data grup (Role) dengan penambahan bit roles baru
+        // 1. Buat data grup (Role) sesuai Bitauth.php asli
         $groups = [
             ['name' => 'Administrator', 'description' => 'Sistem Admin', 'roles' => 1],
-            ['name' => 'Doctor', 'description' => 'Dokter Klinik', 'roles' => 2],
-            ['name' => 'Receptionist', 'description' => 'Resepsionis Klinik', 'roles' => 4],
-            ['name' => 'Laboratorist', 'description' => 'Staff Laboratorium', 'roles' => 8],
-            ['name' => 'Pharmacist', 'description' => 'Apoteker', 'roles' => 16],
-            ['name' => 'Radiologist', 'description' => 'Staff Radiologi (X-Ray)', 'roles' => 32],
-            ['name' => 'Patient', 'description' => 'Pasien', 'roles' => 64],
+            ['name' => 'Guest', 'description' => 'Tamu', 'roles' => 2],
+            ['name' => 'Doctor', 'description' => 'Dokter Klinik', 'roles' => 4],
+            ['name' => 'X-Ray Agent', 'description' => 'Staff Radiologi (X-Ray)', 'roles' => 8],
+            ['name' => 'Laboratory Agent', 'description' => 'Staff Laboratorium', 'roles' => 16],
+            ['name' => 'Pharmacy Agent', 'description' => 'Apoteker', 'roles' => 32],
+            ['name' => 'Receptionist', 'description' => 'Resepsionis Klinik', 'roles' => 64],
+            ['name' => 'Patient', 'description' => 'Pasien', 'roles' => 128],
         ];
         
         foreach ($groups as $g) {
@@ -510,13 +511,13 @@ public function generate_dummy()
             }
         }
 
-        // Ambil ID grup yang baru dibuat
-        $idAdmin = $db->table('groups')->where('name', 'Administrator')->get()->getRow()->group_id;
+        // Ambil ID grup yang baru dibuat (Pastikan namanya sama persis)
+        $idAdmin  = $db->table('groups')->where('name', 'Administrator')->get()->getRow()->group_id;
         $idDoctor = $db->table('groups')->where('name', 'Doctor')->get()->getRow()->group_id;
-        $idResep = $db->table('groups')->where('name', 'Receptionist')->get()->getRow()->group_id;
-        $idLab = $db->table('groups')->where('name', 'Laboratorist')->get()->getRow()->group_id;
-        $idApotek = $db->table('groups')->where('name', 'Pharmacist')->get()->getRow()->group_id;
-        $idXray = $db->table('groups')->where('name', 'Radiologist')->get()->getRow()->group_id;
+        $idResep  = $db->table('groups')->where('name', 'Receptionist')->get()->getRow()->group_id;
+        $idLab    = $db->table('groups')->where('name', 'Laboratory Agent')->get()->getRow()->group_id;
+        $idApotek = $db->table('groups')->where('name', 'Pharmacy Agent')->get()->getRow()->group_id;
+        $idXray   = $db->table('groups')->where('name', 'X-Ray Agent')->get()->getRow()->group_id;
         $idPasien = $db->table('groups')->where('name', 'Patient')->get()->getRow()->group_id;
 
         // 2. Setup Data Dasar User (menghindari error wajib isi di database)
