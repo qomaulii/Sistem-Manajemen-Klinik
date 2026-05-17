@@ -71,6 +71,10 @@ class Drug extends BaseController
     public function return_stock()
     {
         $data['title'] = 'Return Stock';
+        
+        $data['drugs'] = []; // Kirim array kosong agar tidak error "Undefined variable $drugs"
+        $data['pagination'] = ""; // Kirim string kosong agar tidak error di baris 5
+
         // Logika return stock bisa ditambahkan di sini nanti
         $path = 'drug/list'; // Sementara diarahkan ke list
         

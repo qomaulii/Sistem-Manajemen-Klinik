@@ -28,3 +28,5 @@ $routes->get('patient/waiting', 'Patient::waiting');
 // Catatan: Jika form di halaman register melakukan "submit" data, 
 // pastikan kamu juga menambahkan rute POST-nya agar tidak error saat tombol diklik:
 $routes->post('patient/register', 'Patient::register');
+$routes->match(['get', 'post'], 'drug/new_drug', 'Drug::add_drug');
+$routes->match(['get', 'post'], 'drug/return_drug', 'Drug::return_stock');
