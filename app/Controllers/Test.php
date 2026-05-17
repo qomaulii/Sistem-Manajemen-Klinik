@@ -11,9 +11,10 @@ class Test extends BaseController
 
     public function index($limit = 15, $page = 1)
     {
-        $labModel = model('Lab');
-        
-        $data['tests'] = $labModel->get();
+        // Panggil model
+        $labModel = new \App\Models\LabModel();
+        $data['tests'] = $labModel->findAll();
+
         $data['title'] = 'Tests List';
         $data['navActiveId'] = 'navbarLiLab';
         $data['page'] = (int)$page;
@@ -21,9 +22,12 @@ class Test extends BaseController
         $data['pagination'] = ""; 
         
         $path = 'lab/list';
+
+        // PERBAIKAN: Load view beserta header dan footernya agar UI muncul
         if ($this->request->getGet('ajax')) {
             return view($path, $data);
         } else {
+            // Ini yang bikin UI-nya balik lagi!
             $data['includes'] = [$path];
             return view('header', $data) . view('index', $data) . view('footer', $data);
         }

@@ -14,6 +14,7 @@
         // Semua user yang login (biasanya dokter) bisa melihat menu dokter
         echo view('home/cp/doctor');
 
+        // Pengecekan role spesifik
         if($bitauth->has_role('receptionist')) {
             echo view('home/cp/receptionist');
         }
@@ -33,14 +34,14 @@
   ?>
   
   <style>
-    /* Ukuran pixel presisi sesuai permintaanmu */
+    /* Ukuran pixel presisi */
     #cPanel a {
         width: 180px;
         height: 80px;
         margin-right: 8px;
         margin-bottom: 8px;
         border-radius: 0px;
-        font-size: 14px; /* Medium set to pixel */
+        font-size: 14px; 
         padding: 15px;
         display: inline-block;
         text-align: center;

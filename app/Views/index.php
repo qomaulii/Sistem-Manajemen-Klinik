@@ -1,16 +1,11 @@
-<!-- ==========================================
-     KERANGKA TENGAH SISTEM MANAJEMEN KLINIK
-     ========================================== -->
 <section class="row mt-4">
     
-    <!-- 1. BAGIAN KIRI: Sidebar Menu (Menu Navigasi) -->
     <aside class="col-md-3 col-sm-12 mb-4">
         <?php
         // Cek apakah halaman saat ini BUKAN halaman login
         if (isset($title) && strtolower($title) !== 'login') {
             
             // Cek status login (Sesuaikan variabel ini dengan library auth kamu nantinya)
-            // Di CI3 kamu pakai $this->bitauth->logged_in(), di CI4 kita pakai variabel dari controller
             if (isset($is_logged_in) && $is_logged_in === false) {
                 // Tampilkan form login jika belum masuk
                 echo view('account/login');
@@ -22,7 +17,6 @@
         ?>
     </aside>
 
-    <!-- 2. BAGIAN KANAN: Konten Utama (Data Pasien, Obat, Rontgen) -->
     <article class="col-md-9 col-sm-12" id="mainContent"> 
         <?php 
         // A. Merender halaman spesifik yang dikirim dari Controller
@@ -40,12 +34,13 @@
                     <h4>Selamat Datang di Sistem Manajemen Klinik!</h4>
                     <p>Pilih menu di sebelah kiri untuk mulai mengelola operasional klinik:</p>
                     <ul style="line-height: 1.8;">
-                        <li><strong>Data Pasien:</strong> Pendaftaran dan rekam medis.</li>
-                        <li><strong>Data Rontgen / X-Ray:</strong> Hasil periksa laboratorium.</li>
-                        <li><strong>Jadwal Dokter:</strong> Pengaturan jam praktik.</li>
+                        <li><strong>Pendaftaran & Pasien:</strong> Kelola rekam medis dan pendaftaran pasien baru.</li>
+                        <li><strong>Daftar Antrean:</strong> Pantau antrean pasien menuju ruang dokter hari ini.</li>
+                        <li><strong>Pembayaran:</strong> Kelola tagihan, kasir, dan klaim asuransi pasien.</li>
+                        <li><strong>Lab & Radiologi:</strong> (Akses khusus petugas lab untuk hasil periksa rontgen/darah).</li>
                     </ul>
                     <hr>
-                    <p class="text-muted" style="font-size: 12px;"><em>Silakan lengkapi file di folder app/Views untuk menampilkan data spesifik.</em></p>
+                    <p class="text-muted" style="font-size: 12px;"><em>Sistem beroperasi berdasarkan hak akses (Role-Based Access Control).</em></p>
                 </div>
             </div>
             <?php
