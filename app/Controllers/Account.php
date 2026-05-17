@@ -489,15 +489,19 @@ class Account extends BaseController
         }
     }
 
-    public function generate_dummy()
+public function generate_dummy()
     {
         $db = \Config\Database::connect();
         
-        // 1. Buat data grup (Role)
+        // 1. Definisikan 7 Grup/Role (Bitmask: 1, 2, 4, 8, 16, 32, 64)
         $groups = [
             ['name' => 'Administrator', 'description' => 'Sistem Admin', 'roles' => 1],
-            ['name' => 'Doctor', 'description' => 'Dokter Klinik', 'roles' => 2],
-            ['name' => 'Receptionist', 'description' => 'Resepsionis Klinik', 'roles' => 4],
+            ['name' => 'Doctor',        'description' => 'Dokter Klinik', 'roles' => 2],
+            ['name' => 'Receptionist',  'description' => 'Resepsionis Klinik', 'roles' => 4],
+            ['name' => 'Pharmacist',    'description' => 'Apoteker', 'roles' => 8],
+            ['name' => 'Laboratory',    'description' => 'Petugas Lab', 'roles' => 16],
+            ['name' => 'Radiology',     'description' => 'Petugas Radiologi', 'roles' => 32],
+            ['name' => 'Patient',       'description' => 'Pasien Umum', 'roles' => 64],
         ];
         
         foreach ($groups as $g) {
@@ -506,12 +510,12 @@ class Account extends BaseController
             }
         }
 
-        // Ambil ID grup yang baru dibuat
-        $idAdmin = $db->table('groups')->where('name', 'Administrator')->get()->getRow()->group_id;
-        $idDoctor = $db->table('groups')->where('name', 'Doctor')->get()->getRow()->group_id;
-        $idResep = $db->table('groups')->where('name', 'Receptionist')->get()->getRow()->group_id;
+        // Ambil ID grup secara dinamis
+        $getGroupId = function($name) use ($db) {
+            return $db->table('groups')->where('name', $name)->get()->getRow()->group_id;
+        };
 
-        // 2. Setup Data Dasar User (menghindari error wajib isi di database)
+        // 2. Setup Data Dasar User
         $baseData = [
             'gender'      => 'Male',
             'email'       => 'dummy@klinik.com',
@@ -524,48 +528,105 @@ class Account extends BaseController
             'create_date' => time()
         ];
 
-        // 3. Buat Akun Dummy
+        // 3. Daftar 7 Akun Dummy
         $usersToCreate = [
-            array_merge($baseData, [
-                'username'   => 'admin',
-                'password'   => 'admin123',
-                'first_name' => 'Super',
-                'last_name'  => 'Admin',
-                'position'   => 'Administrator',
-                'groups'     => [$idAdmin]
-            ]),
-            array_merge($baseData, [
-                'username'   => 'dokter1',
-                'password'   => 'dokter123',
-                'first_name' => 'Dr. Budi',
-                'last_name'  => 'Santoso',
-                'position'   => 'Doctor',
-                'groups'     => [$idDoctor]
-            ]),
-            array_merge($baseData, [
-                'username'   => 'resep1',
-                'password'   => 'resep123',
-                'first_name' => 'Siti',
-                'last_name'  => 'Rahayu',
-                'position'   => 'Receptionist',
-                'gender'     => 'Female',
-                'groups'     => [$idResep]
-            ])
+            array_merge($baseData, ['username' => 'admin',   'password' => 'admin123',   'first_name' => 'Super',   'last_name' => 'Admin',  'position' => 'Administrator', 'groups' => [$getGroupId('Administrator')]]),
+            array_merge($baseData, ['username' => 'dokter1', 'password' => 'dokter123',  'first_name' => 'Dr. Budi', 'last_name' => 'Santoso', 'position' => 'Doctor',        'groups' => [$getGroupId('Doctor')]]),
+            array_merge($baseData, ['username' => 'resep1',  'password' => 'resep123',   'first_name' => 'Siti',    'last_name' => 'Resep',   'position' => 'Receptionist',  'gender' => 'Female', 'groups' => [$getGroupId('Receptionist')]]),
+            array_merge($baseData, ['username' => 'apotek1', 'password' => 'apotek123',  'first_name' => 'Andi',    'last_name' => 'Apotek',  'position' => 'Pharmacist',    'groups' => [$getGroupId('Pharmacist')]]),
+            array_merge($baseData, ['username' => 'lab1',    'password' => 'lab123',     'first_name' => 'Lana',    'last_name' => 'Lab',     'position' => 'Laboratory',    'groups' => [$getGroupId('Laboratory')]]),
+            array_merge($baseData, ['username' => 'xray1',   'password' => 'xray123',    'first_name' => 'Xaver',   'last_name' => 'Xray',    'position' => 'Radiology',     'groups' => [$getGroupId('Radiology')]]),
+            array_merge($baseData, ['username' => 'pasien1', 'password' => 'pasien123',  'first_name' => 'Bambang', 'last_name' => 'Pasien',  'position' => 'Patient',       'groups' => [$getGroupId('Patient')]]),
         ];
 
         foreach ($usersToCreate as $user) {
-            // Cek apakah username sudah ada biar tidak dobel
             if ($db->table('users')->where('username', $user['username'])->countAllResults() == 0) {
                 $this->bitauth->add_user($user);
             }
         }
 
         echo "<h1 style='color:green;'>Sukses!</h1>";
-        echo "<p>Data dummy berhasil dimasukkan ke SQL. Silakan login menggunakan akun berikut:</p>";
-        echo "<ul>
-                <li><b>Admin:</b> admin <br> <b>Password:</b> admin123</li>
-                <li><b>Dokter:</b> dokter1 <br> <b>Password:</b> dokter123</li>
-                <li><b>Resepsionis:</b> resep1 <br> <b>Password:</b> resep123</li>
-              </ul>";
+        echo "<p>7 Aktor berhasil dimasukkan ke database. Silakan coba login satu per satu.</p>";
+    }
+
+    public function signup()
+    {
+        if ($this->bitauth->get_users() && !$this->bitauth->logged_in()) {
+            return redirect()->to('account/login');
+        }
+
+        if ($this->bitauth->get_users() && !$this->bitauth->is_admin()) {
+            return $this->_no_access();
+        }
+        
+        $data = [];
+        if ($this->request->is('post')) {
+            $rules = [
+                'username'      => 'required',
+                'email'         => 'required|valid_email',
+                'password'      => 'required',
+                'password_conf' => 'required|matches[password]',
+            ];
+            
+            if ($this->validate($rules)) {
+                $user = $this->request->getPost();
+                unset($user['submit'], $user['password_conf']);
+                
+                $user['birth_date'] = strtotime($user['birth_date']);
+                $user['create_date'] = time();
+                
+                if ($this->bitauth->add_user($user)) {
+                    return redirect()->to('account/users')->with('success', 'User registered');
+                }
+            } else {
+                $data['error'] = $this->validator->listErrors();
+            }
+        }
+        
+        $data['title'] = 'Sign up'; 
+        $data['id_type_options'] = $this->_id_type_options();
+        $path = 'account/add_user';
+        
+        if ($this->request->getGet('ajax')) {
+            return view($path, $data);
+        } else {
+            $data['includes'] = [$path];
+            return view('header', $data) . view('index', $data) . view('footer', $data);
+        }
+    }
+
+    public function users($limit = 10, $page = 1)
+    {
+        if (!$this->bitauth->logged_in()) return redirect()->to('account/login');
+        if (!$this->bitauth->is_admin()) return $this->_no_access();
+        
+        $data['title'] = 'User List';
+        $data['users'] = $this->bitauth->get_users(TRUE);
+        $data['bitauth'] = $this->bitauth;
+        
+        $path = 'account/users';
+        if ($this->request->getGet('ajax')) {
+            return view($path, $data);
+        } else {
+            $data['includes'] = [$path];
+            return view('header', $data) . view('index', $data) . view('footer', $data);
+        }
+    }
+
+    public function logout()
+    {
+        $this->bitauth->logout();
+        return redirect()->to('account/login');
+    }
+
+    public function _no_access()
+    {
+        $data['title'] = 'Unauthorized Access';
+        return view('header', $data) . view('account/no_access', $data) . view('footer', $data);
+    }
+
+    public function _id_type_options()
+    {
+        return ['Tazkara' => 'Tazkara', 'Passport' => 'Passport', 'Driver License' => 'Driver License', 'Bank ID Card' => 'Bank ID Card'];
     }
 }
