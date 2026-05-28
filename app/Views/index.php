@@ -1,52 +1,55 @@
 <section class="row mt-4">
     
-    <aside class="col-md-3 col-sm-12 mb-4">
-        <?php
-        // Cek apakah halaman saat ini BUKAN halaman login
-        if (isset($title) && strtolower($title) !== 'login') {
-            
-            // Cek status login (Sesuaikan variabel ini dengan library auth kamu nantinya)
-            if (isset($is_logged_in) && $is_logged_in === false) {
-                // Tampilkan form login jika belum masuk
-                echo view('account/login');
-            } else {
-                // Tampilkan menu navigasi klinik jika sudah masuk
-                echo view('repository/sidebar');
-            }
-        }
-        ?>
-    </aside>
+    <?php 
+      // Memanggil pustaka Bitauth untuk mengecek status login di level View
+      $bitauth = new \App\Libraries\Bitauth();
+      $is_logged_in = $bitauth->logged_in();
 
-    <article class="col-md-9 col-sm-12" id="mainContent"> 
+      $is_public_page = (isset($title) && (strtolower($title) === 'login' || strtolower($title) === 'registrasi pasien'));
+      
+      // PERBAIKAN: Jika pengguna belum login dan memaksa masuk ke rute selain Login/Register (misal rute '/'),
+      // sistem akan secara paksa menjadikannya halaman publik dan merender form login.
+      if (!$is_logged_in && !$is_public_page && !isset($view_content)) {
+          $is_public_page = true;
+          $includes = ['account/login'];
+      }
+
+      $colClass = $is_public_page ? 'col-md-6 col-md-offset-3 col-sm-12' : 'col-md-9 col-sm-12'; 
+    ?>
+
+    <?php if (!$is_public_page && $is_logged_in) : ?>
+      <aside class="col-md-3 col-sm-12 mb-4">
+          <?= view('repository/sidebar') ?>
+      </aside>
+    <?php endif; ?>
+    
+    <article class="<?= $colClass ?>" id="mainContent" style="<?= $is_public_page ? 'margin-top: 40px;' : '' ?>"> 
         <?php 
-        // A. Merender halaman spesifik yang dikirim dari Controller
         if (isset($view_content)) {
             echo view($view_content);
-        } else {
-            // B. TAMPILAN DASHBOARD DEFAULT KLINIK
-            // Muncul otomatis kalau Controller tidak ngirim $view_content
-            ?>
-            <div class="panel panel-primary" style="border: 1px solid #0a78b4; border-radius: 5px;">
-                <div class="panel-heading" style="background-color: #0a78b4; color: white; padding: 10px 15px;">
-                    <h3 class="panel-title" style="margin: 0; font-size: 18px;">Dashboard Klinik</h3>
+        } 
+        // TAMBAHKAN LOGIKA: Hanya tampilkan dasbor jika TIDAK di halaman publik DAN sudah login
+        elseif (!$is_public_page && isset($bitauth) && $bitauth->logged_in()) {
+            if ($bitauth->has_role('patient') && !$bitauth->is_admin()) {
+                // Tampilan dasbor Pasien
+                ?>
+                <div style="padding: 24px; background-color: #ffffff; border-left: 5px solid #3498db; ...">
+                    <h3>Portal Rekam Medis Pasien</h3>
+                    <p>Selamat datang, Anda dapat melihat riwayat kunjungan melalui menu di samping.</p>
                 </div>
-                <div class="panel-body" style="padding: 20px;">
-                    <h4>Selamat Datang di Sistem Manajemen Klinik!</h4>
-                    <p>Pilih menu di sebelah kiri untuk mulai mengelola operasional klinik:</p>
-                    <ul style="line-height: 1.8;">
-                        <li><strong>Pendaftaran & Pasien:</strong> Kelola rekam medis dan pendaftaran pasien baru.</li>
-                        <li><strong>Daftar Antrean:</strong> Pantau antrean pasien menuju ruang dokter hari ini.</li>
-                        <li><strong>Pembayaran:</strong> Kelola tagihan, kasir, dan klaim asuransi pasien.</li>
-                        <li><strong>Lab & Radiologi:</strong> (Akses khusus petugas lab untuk hasil periksa rontgen/darah).</li>
-                    </ul>
-                    <hr>
-                    <p class="text-muted" style="font-size: 12px;"><em>Sistem beroperasi berdasarkan hak akses (Role-Based Access Control).</em></p>
+                <?php
+            } else {
+                // Tampilan dasbor Staf/Admin
+                ?>
+                <div style="margin-top: 20px; margin-bottom: 20px; padding: 24px; background-color: #ffffff; border-left: 5px solid #48c9b0; ...">
+                    <h3>Halo, Selamat Bekerja!</h3>
+                    <p>Silakan gunakan menu navigasi untuk mengelola operasional klinik.</p>
                 </div>
-            </div>
-            <?php
+                <?php
+            }
         }
         
-        // C. Merender file sisipan tambahan (Misal: popup modal, atau tabel pendukung)
+        // Memuat form login/register/dll
         if (isset($includes) && is_array($includes)) {
             foreach ($includes as $include) {
                 echo view($include);

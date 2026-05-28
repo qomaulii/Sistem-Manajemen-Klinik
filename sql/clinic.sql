@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 17, 2026 at 08:01 AM
+-- Generation Time: May 28, 2026 at 05:07 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -107,17 +107,13 @@ CREATE TABLE `groups` (
 --
 
 INSERT INTO `groups` (`group_id`, `name`, `description`, `roles`) VALUES
-(1, 'Administrator', '', 1),
-(2, 'Guest', '', 2),
-(3, 'Doctor', '', 4),
-(4, 'X-Ray Agent', '', 8),
-(5, 'Laboratory Agent', '', 16),
-(6, 'Pharmacy Agent', '', 32),
-(7, 'Receptionist', '', 64),
-(8, 'Patient', '', 128),
-(9, 'Laboratorist', 'Staff Laboratorium', 8),
-(10, 'Pharmacist', 'Apoteker', 16),
-(11, 'Radiologist', 'Staff Radiologi (X-Ray)', 32);
+(1, 'Administrator', 'Memiliki kendali penuh atas manajemen pengguna, grup hak akses, dan pengaturan inti sistemm.', 1),
+(3, 'Dokter', 'Menganalisis rekam medis, membuat resep obat, serta merujuk tes lab dan radiologi.', 4),
+(4, 'Radiografer', 'Mengelola jadwal pasien, mengunggah hasil pindai X-Ray, dan memperbarui rekam radiologi.', 8),
+(5, 'Analis Lab', 'Mengelola jadwal tes laboratorium, menginput hasil tes sampel, dan menerbitkan dokumen lab.', 16),
+(6, 'Apoteker', 'Mengelola inventaris obat, memperbarui stok, dan mencatat transaksi pengambilan resep.', 32),
+(7, 'Resepsionis', 'Mengatur pendaftaran pasien, mengelola antrean harian, dan mencetak tagihan pembayaran.', 64),
+(8, 'Pasien', 'Akses mandiri untuk melihat riwayat kunjungan, hasil lab/X-Ray, dan status antrean.', 128);
 
 -- --------------------------------------------------------
 
@@ -219,7 +215,11 @@ INSERT INTO `logins` (`login_id`, `ip_address`, `user_id`, `time`, `success`) VA
 (31, 0, 10, '2026-05-17 05:52:44', 1),
 (32, 0, 11, '2026-05-17 05:53:01', 1),
 (33, 0, 10, '2026-05-17 05:53:27', 1),
-(34, 0, 9, '2026-05-17 05:53:51', 1);
+(34, 0, 9, '2026-05-17 05:53:51', 1),
+(35, 0, 5, '2026-05-19 03:39:57', 1),
+(36, 0, 5, '2026-05-19 07:15:51', 1),
+(37, 0, 5, '2026-05-19 12:24:30', 1),
+(38, 0, 5, '2026-05-28 01:12:56', 1);
 
 -- --------------------------------------------------------
 
@@ -231,13 +231,12 @@ CREATE TABLE `patients` (
   `patient_id` int(11) NOT NULL,
   `first_name` varchar(40) NOT NULL,
   `last_name` varchar(40) DEFAULT NULL,
-  `fname` varchar(40) DEFAULT NULL,
+  `nip` varchar(40) DEFAULT NULL,
   `gender` tinyint(1) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `phone` varchar(15) DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
-  `social_id` varchar(12) DEFAULT NULL,
-  `id_type` enum('','Tazkara','Passport','Driver License','Bank ID Card') DEFAULT NULL,
+  `nik` varchar(40) DEFAULT NULL,
   `birth_date` int(11) DEFAULT NULL,
   `create_date` int(11) NOT NULL,
   `picture` text DEFAULT NULL,
@@ -248,8 +247,8 @@ CREATE TABLE `patients` (
 -- Dumping data for table `patients`
 --
 
-INSERT INTO `patients` (`patient_id`, `first_name`, `last_name`, `fname`, `gender`, `email`, `phone`, `address`, `social_id`, `id_type`, `birth_date`, `create_date`, `picture`, `memo`) VALUES
-(1, 'Sari', 'Dewi', NULL, 0, NULL, '08111222333', NULL, NULL, NULL, 946656000, 1777954430, NULL, NULL);
+INSERT INTO `patients` (`patient_id`, `first_name`, `last_name`, `nip`, `gender`, `email`, `phone`, `address`, `nik`, `birth_date`, `create_date`, `picture`, `memo`) VALUES
+(1, 'Sari', 'Dewi', NULL, 0, NULL, '08111222333', NULL, NULL, 946656000, 1777954430, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -331,14 +330,13 @@ CREATE TABLE `userdata` (
   `user_id` int(10) UNSIGNED NOT NULL,
   `first_name` varchar(40) DEFAULT NULL,
   `last_name` varchar(40) DEFAULT NULL,
-  `fname` varchar(40) DEFAULT NULL,
+  `nip` varchar(40) DEFAULT NULL,
   `gender` tinyint(1) DEFAULT NULL,
   `email` varchar(254) NOT NULL,
   `phone` varchar(15) NOT NULL,
   `address` varchar(255) DEFAULT NULL,
   `position` varchar(40) NOT NULL,
-  `social_id` varchar(12) NOT NULL,
-  `id_type` enum('','Tazkara','Passport','Driver License','Bank ID Card') DEFAULT 'Tazkara',
+  `nik` varchar(40) DEFAULT NULL,
   `birth_date` int(11) DEFAULT NULL,
   `create_date` int(11) NOT NULL,
   `picture` text DEFAULT NULL,
@@ -349,18 +347,21 @@ CREATE TABLE `userdata` (
 -- Dumping data for table `userdata`
 --
 
-INSERT INTO `userdata` (`userdata_id`, `user_id`, `first_name`, `last_name`, `fname`, `gender`, `email`, `phone`, `address`, `position`, `social_id`, `id_type`, `birth_date`, `create_date`, `picture`, `memo`) VALUES
-(1, 1, 'Andi', 'Wijaya', NULL, NULL, 'dr.andi@klinik.com', '08111111111', NULL, 'Dokter Umum', '', 'Tazkara', NULL, 1777952863, NULL, NULL),
-(2, 2, 'Siti', 'Rahayu', NULL, NULL, 'dr.siti@klinik.com', '08222222222', NULL, 'Dokter Anak', '', 'Tazkara', NULL, 1777952863, NULL, NULL),
-(3, 3, 'Reza', 'Pratama', NULL, NULL, 'dr.reza@klinik.com', '08333333333', NULL, 'Dokter Gigi', '', 'Tazkara', NULL, 1777952863, NULL, NULL),
-(4, 4, 'Maya', 'Kusuma', NULL, NULL, 'dr.maya@klinik.com', '08444444444', NULL, 'Dokter Kandungan', '', 'Tazkara', NULL, 1777952863, NULL, NULL),
-(5, 5, 'Super', 'Admin', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Administrator', '-', 'Tazkara', 1777958930, 1777958930, NULL, NULL),
-(6, 6, 'Dr. Budi', 'Santoso', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Doctor', '-', 'Tazkara', 1777958930, 1777958930, NULL, NULL),
-(7, 7, 'Siti', 'Rahayu', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Receptionist', '-', 'Tazkara', 1777958930, 1777958930, NULL, NULL),
-(8, 8, 'Budi', 'Laboratorium', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Laboratorist', '-', 'Tazkara', 1778123138, 1778123138, NULL, NULL),
-(9, 9, 'Ani', 'Apoteker', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Pharmacist', '-', 'Tazkara', 1778123138, 1778123138, NULL, NULL),
-(10, 10, 'Joko', 'Radiologi', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Radiologist', '-', 'Tazkara', 1778123138, 1778123138, NULL, NULL),
-(11, 11, 'Pasien', 'Satu', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Patient', '-', 'Tazkara', 1778123138, 1778123138, NULL, NULL);
+INSERT INTO `userdata` (`userdata_id`, `user_id`, `first_name`, `last_name`, `nip`, `gender`, `email`, `phone`, `address`, `position`, `nik`, `birth_date`, `create_date`, `picture`, `memo`) VALUES
+(1, 1, 'Andi', 'Wijayaa', '123', 1, 'dr.andi@klinik.com', '08111111111', 'Mataram', 'Dokter Umum', '123', -28800, 1777952863, NULL, NULL),
+(2, 2, 'Siti', 'Rahayu', NULL, NULL, 'dr.siti@klinik.com', '08222222222', NULL, 'Dokter Anak', '', NULL, 1777952863, NULL, NULL),
+(3, 3, 'Reza', 'Pratama', NULL, NULL, 'dr.reza@klinik.com', '08333333333', NULL, 'Dokter Gigi', '', NULL, 1777952863, NULL, NULL),
+(4, 4, 'Maya', 'Kusuma', NULL, NULL, 'dr.maya@klinik.com', '08444444444', NULL, 'Dokter Kandungan', '', NULL, 1777952863, NULL, NULL),
+(5, 5, 'Admin', '', '1233', 1, 'dummy@klinik.com', '08123456789', '', 'Administrator', '123', 1777910400, 1777958930, 'uploads/hospital/staff/5/5_profile_picture.png', NULL),
+(6, 6, 'Dr. Budi', 'Santoso', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Doctor', '-', 1777958930, 1777958930, NULL, NULL),
+(7, 7, 'Siti', 'Rahayu', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Receptionist', '-', 1777958930, 1777958930, NULL, NULL),
+(8, 8, 'Budi', 'Laboratorium', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Laboratorist', '-', 1778123138, 1778123138, NULL, NULL),
+(9, 9, 'Ani', 'Apoteker', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Pharmacist', '-', 1778123138, 1778123138, NULL, NULL),
+(10, 10, 'Joko', 'Radiologi', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Radiologist', '-', 1778123138, 1778123138, NULL, NULL),
+(11, 11, 'Pasien', 'Satu', NULL, 0, 'dummy@klinik.com', '08123456789', NULL, 'Patient', '-', 1778123138, 1778123138, NULL, NULL),
+(12, 12, 'qoma', 'aul', '1234', 0, 'qomaul@gmail.com', '081234567890', '', 'Pasien', '1234', 0, 1779936538, NULL, NULL),
+(13, 13, 'qoma', 'aul', '1234', 0, 'qomaul@gmail.com', '081234567890', '', 'Pasien', '1234', 0, 1779936600, NULL, NULL),
+(14, 14, 'qomari', 'auliyah', '12341234', 0, 'qomaaaulii@gmail.com', '085337848171', 'Jl. Swasembada No.15A, Kekalik Jaya, Kec. Sekarbela, Mataram, Nusa Tenggara Barat', 'Pasien', '12341234', 1779897600, 1779937056, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -389,11 +390,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `password_last_set`, `password_never_expires`, `remember_me`, `activation_code`, `active`, `forgot_code`, `forgot_generated`, `enabled`, `last_login`, `last_login_ip`) VALUES
-(1, 'dr.andi', '$2y$10$placeholder', '2026-05-05 11:47:43', 0, '', NULL, 1, NULL, NULL, 1, NULL, NULL),
+(1, 'dr.andi', '$2y$10$placeholder', '2026-05-05 11:47:43', 1, '', NULL, 1, NULL, NULL, 1, NULL, NULL),
 (2, 'dr.siti', '$2y$10$placeholder', '2026-05-05 11:47:43', 0, '', NULL, 1, NULL, NULL, 1, NULL, NULL),
 (3, 'dr.reza', '$2y$10$placeholder', '2026-05-05 11:47:43', 0, '', NULL, 1, NULL, NULL, 1, NULL, NULL),
 (4, 'dr.maya', '$2y$10$placeholder', '2026-05-05 11:47:43', 0, '', NULL, 1, NULL, NULL, 1, NULL, NULL),
-(5, 'admin', '$2a$08$6ewmXDKaJ/VcY.qr8MJByuf1oLWYwkD6zo.eecuoQpdpxEuSDJ0Ke', '2026-05-05 05:28:50', 0, '8e6fb262c52eef77a651e5cda4c6692a34e2a096', NULL, 1, NULL, NULL, 1, '2026-05-07 11:58:46', 0),
+(5, 'admin', '$2a$08$6ewmXDKaJ/VcY.qr8MJByuf1oLWYwkD6zo.eecuoQpdpxEuSDJ0Ke', '2026-05-05 05:28:50', 1, '74593ab2959dde0407e04935a9572be08e69634c', NULL, 1, NULL, NULL, 1, '2026-05-28 09:12:56', 0),
 (6, 'dokter1', '$2a$08$QGVATFyp2R0KbHeT2p9r/umF418G01WH/p9Spv3AqD0nOCYdldege', '2026-05-05 05:28:50', 0, 'c0fb8f45925616a4515b1ca7f62937acb80b6137', NULL, 1, NULL, NULL, 1, '2026-05-05 14:02:58', 0),
 (7, 'resep1', '$2a$08$LZg/gXF2PoWdFW2w6aFdbeh0f2PlEb/vRlSE8f1/13zA7oC3FK8P2', '2026-05-05 05:28:50', 0, '6c40c20495ff83424d85eefb5d65bdc15fb794cd', NULL, 1, NULL, NULL, 1, '2026-05-17 13:51:47', 0),
 (8, 'lab1', '$2a$08$BdeCYv8RMhEyserCBa3KnO67tQq6Ii3JNo7kGGHRWMyi1guuQDI3O', '2026-05-07 11:05:38', 0, '', NULL, 1, NULL, NULL, 1, '2026-05-17 13:51:56', 0),
@@ -418,17 +419,17 @@ CREATE TABLE `user_group` (
 --
 
 INSERT INTO `user_group` (`assoc_id`, `user_id`, `group_id`) VALUES
-(1, 1, 3),
+(12, 1, 3),
 (2, 2, 3),
 (3, 3, 3),
 (4, 4, 3),
-(5, 5, 1),
+(21, 5, 1),
 (6, 6, 3),
 (7, 7, 7),
-(8, 8, 9),
-(9, 9, 10),
-(10, 10, 11),
-(11, 11, 8);
+(11, 11, 8),
+(18, 12, 8),
+(19, 13, 8),
+(20, 14, 8);
 
 -- --------------------------------------------------------
 
@@ -685,7 +686,7 @@ ALTER TABLE `lab_patient`
 -- AUTO_INCREMENT for table `logins`
 --
 ALTER TABLE `logins`
-  MODIFY `login_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `login_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `patients`
@@ -721,19 +722,19 @@ ALTER TABLE `returned_drugs`
 -- AUTO_INCREMENT for table `userdata`
 --
 ALTER TABLE `userdata`
-  MODIFY `userdata_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `userdata_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `user_id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `user_group`
 --
 ALTER TABLE `user_group`
-  MODIFY `assoc_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `assoc_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `xrays`

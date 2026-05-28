@@ -103,7 +103,8 @@ class Patient extends BaseController
         }
     }
   
-    public function register(){
+    public function register()
+    {
         $data = [];
         if ($this->request->getMethod() === 'post') {
             $rules = [
@@ -113,37 +114,49 @@ class Patient extends BaseController
                 'doctor'     => 'required',
                 'age'        => 'required|numeric',
             ];
-            log_message('debug', 'POST DATA: ' . json_encode($this->request->getPost()));
 
             if ($this->validate($rules)) {
-                // PERBAIKAN: Tambah 'Model'
                 $patientsModel = model('PatientsModel');
                 $patientDoctorModel = model('PatientDoctorModel');
                 
                 $postData = $this->request->getPost();
                 $_doctor = $postData['doctor'];
+                
+                // Kalkulasi tanggal lahir berdasarkan umur
                 $birth_date = mktime(0, 0, 0, date('m'), date('d'), date('Y') - $postData['age']); 
                 
-                // Hapus data yang tidak masuk tabel
                 unset($postData['submit'], $postData['doctor'], $postData['age']); 
                 
                 $postData['birth_date'] = $birth_date;
                 $postData['create_date'] = time();
                 
+                // 1. Simpan Data Pasien
                 foreach ($postData as $key => $value) {
                     $patientsModel->$key = $value;
                 }
                 $patientsModel->save();
+                $newPatientId = $patientsModel->getInsertID(); 
                 
-                $patientDoctorModel->patient_id = $patientsModel->patient_id;
+                // 2. Simpan Relasi Dokter (Model Lama)
+                $patientDoctorModel->patient_id = $newPatientId;
                 $patientDoctorModel->user_id = $_doctor;
                 $patientDoctorModel->visit_date = time();
                 $patientDoctorModel->save();
+
+                // 3. TAMBAHAN: Simpan ke Tabel Antrean (patient_visits)
+                // Ini yang membuat pasien muncul di daftar antrean dokter!
+                $db = \Config\Database::connect();
+                $db->table('patient_visits')->insert([
+                    'patient_id'    => $newPatientId,
+                    'doctor_id'     => $_doctor,
+                    'queue_number'  => $this->_get_next_queue_number($_doctor),
+                    'status'        => 'Menunggu',
+                    'register_time' => time()
+                ]);
                 
-                return redirect()->to('patient/ticket/' . $patientsModel->patient_id);
+                return redirect()->to('patient/ticket/' . $newPatientId);
             } else {
                 $data['error'] = '<div class="alert alert-danger">' . $this->validator->listErrors() . '</div>';
-                log_message('debug', 'VALIDATION ERROR: ' . json_encode($this->validator->getErrors()));
             }
         }
 
@@ -151,7 +164,6 @@ class Patient extends BaseController
         $data['id_type_options'] = $this->_id_type_options();
         $data['doctor_list'] = $this->_doctor_list();
         
-        // PERBAIKAN: Ubah add_patient menjadi register
         $path = 'patient/register';
         if ($this->request->getGet('ajax')) {
             return view($path, $data);
@@ -159,6 +171,21 @@ class Patient extends BaseController
             $data['includes'] = [$path];
             return view('header', $data) . view('index', $data) . view('footer', $data);
         }
+    }
+
+    // Tambahkan fungsi pembantu ini di dalam class Patient (bukan di dalam register)
+    private function _get_next_queue_number($doctor_id)
+    {
+        $db = \Config\Database::connect();
+        $todayStart = strtotime('today midnight');
+        
+        $lastQueue = $db->table('patient_visits')
+                        ->where('doctor_id', $doctor_id)
+                        ->where('register_time >=', $todayStart)
+                        ->orderBy('queue_number', 'DESC')
+                        ->get()->getRow();
+        
+        return $lastQueue ? ($lastQueue->queue_number + 1) : 1;
     }
 
     public function ticket($patient_id = 0)

@@ -55,25 +55,121 @@ class Account extends BaseController
         }
     }
 
+    public function register()
+    {
+        // PERBAIKAN FATAL: Menghancurkan sesi secara diam-diam tanpa memicu Infinite Redirect Loop.
+        if ($this->bitauth->logged_in()) {
+            $this->bitauth->logout();
+            session()->destroy(); // Memastikan sesi CI4 benar-benar dibersihkan
+        }
+
+        $data = [];
+
+        if (strtolower($this->request->getMethod()) === 'post') {
+            $rules = [
+                'username'          => 'required|is_unique[users.username]',
+                'password'          => 'required',
+                'password_conf'     => 'required|matches[password]',
+                'first_name'        => 'required',
+                'nik'               => 'required',
+                'birth_date'        => 'required',
+                'email'             => 'required|valid_email',
+                'phone'             => 'required',
+                'identity_document' => 'uploaded[identity_document]|is_image[identity_document]|mime_in[identity_document,image/jpg,image/jpeg,image/png]'
+            ];
+
+            if ($this->validate($rules)) {
+                $postData = $this->request->getPost();
+                $db = \Config\Database::connect();
+                
+                $pasienGroup = $db->table('groups')->where('name', 'Pasien')->get()->getRow();
+                $pasienGroupId = $pasienGroup ? $pasienGroup->group_id : 8; 
+
+                $user = [
+                    'username'   => $postData['username'],
+                    'password'   => $postData['password'],
+                    'first_name' => $postData['first_name'],
+                    'last_name'  => $postData['last_name'] ?? '',
+                    'active'     => 1, 
+                    'enabled'    => 1,
+                    'password_never_expires' => 1,
+                    'groups'     => [$pasienGroupId] // Mutlak masuk ke grup Pasien
+                ];
+
+                if ($this->bitauth->add_user($user)) {
+                    $newUser = $db->table('users')->where('username', $user['username'])->get()->getRow();
+                    
+                    if ($newUser) {
+                        $updateData = [
+                            'nik'        => $postData['nik'],
+                            'nip'        => $postData['nip'] ?? '', 
+                            'gender'     => $postData['gender'] ?? 0,
+                            'address'    => $postData['address'] ?? '',
+                            'position'   => 'Pasien', // Jabatan mutlak sebagai Pasien
+                            'email'      => $postData['email'],
+                            'phone'      => $postData['phone'],
+                            'birth_date' => strtotime($postData['birth_date'])
+                        ];
+
+                        $identityFile = $this->request->getFile('identity_document');
+                        if ($identityFile && $identityFile->isValid() && !$identityFile->hasMoved()) {
+                            $path    = 'uploads/patients/identity/';
+                            $newName = $newUser->user_id . '_identitas.' . $identityFile->getExtension();
+                            $identityFile->move($path, $newName);
+                            $updateData['identity_document'] = $path . $newName;
+                        }
+
+                        $pictureFile = $this->request->getFile('picture');
+                        if ($pictureFile && $pictureFile->isValid() && !$pictureFile->hasMoved()) {
+                            $pathPic    = 'uploads/hospital/staff/' . $newUser->user_id . '/';
+                            $newPicName = $newUser->user_id . '_profile_picture.' . $pictureFile->getExtension();
+                            $pictureFile->move($pathPic, $newPicName);
+                            $updateData['picture'] = $pathPic . $newPicName;
+                        }
+                        
+                        $db->table('userdata')->where('user_id', $newUser->user_id)->update($updateData);
+                    }
+
+                    // Registrasi berhasil, arahkan ke Login
+                    return redirect()->to('account/login')->with('success', 'Registrasi berhasil! Silakan masuk menggunakan Username dan Kata Sandi yang baru saja Anda buat.');
+                } else {
+                    return redirect()->back()->withInput()->with('error', 'Sistem gagal mendaftarkan akun Anda. Silakan coba lagi.');
+                }
+            } else {
+                return redirect()->back()->withInput()->with('error', $this->validator->listErrors());
+            }
+        }
+
+        $data['title'] = 'Registrasi Pasien';
+
+        $path = 'account/register';
+        if ($this->request->getGet('ajax')) {
+            return view($path, $data);
+        } else {
+            $data['includes'] = [$path];
+            return view('header', $data) . view('index', $data) . view('footer', $data);
+        }
+    }
+
     public function users($limit = 10, $page = 1)
     {
         if (!$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());      
+            // PERBAIKAN ERROR 1: Casting current_url() menjadi tipe data string
+            session()->set('redir', (string) current_url());      
             return redirect()->to('account/login');
         }
         if (!$this->bitauth->is_admin()) {
             return $this->_no_access();
         }
         
-        $data['title'] = 'User List';
+        $data['title']   = 'Daftar Pengguna'; 
         $data['bitauth'] = $this->bitauth;
-        $data['users'] = $this->bitauth->get_users(TRUE);
+        $data['users']   = $this->bitauth->get_users(TRUE);
         
         $data['total_rows'] = count($data['users']);
-        $data['page'] = (int)$page;
-        $data['per_page'] = (int)$limit;
+        $data['page']       = (int)$page;
+        $data['per_page']   = (int)$limit;
         
-        // Fitur pagination bawaan CI4 (menggantikan library my_pagination lamamu)
         $data['pagination'] = ""; 
         
         $path = 'account/users';
@@ -88,7 +184,7 @@ class Account extends BaseController
     public function signup()
     {
         if ($this->bitauth->get_users() && !$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
+            session()->set('redir', (string) current_url());
             return redirect()->to('account/login');
         }
 
@@ -97,56 +193,76 @@ class Account extends BaseController
         }
         
         $data = [];
-        $data['roles_option'] = config('Bitauth')->roles; // Mengambil config dari CI4
         
-        if ($this->request->getMethod() === 'post') {
+        if (strtolower($this->request->getMethod()) === 'post') {
             $rules = [
-                'username'      => 'required|trim',
-                'first_name'    => 'trim',
-                'last_name'     => 'trim',
-                'fname'         => 'trim',
-                'gender'        => 'required',
-                'email'         => 'required|trim|valid_email',
-                'phone'         => 'required|trim',
-                'social_id'     => 'required|trim',
-                'id_type'       => 'required|trim',
-                'position'      => 'required|trim',
+                'username'      => 'required|is_unique[users.username]', 
                 'password'      => 'required',
                 'password_conf' => 'required|matches[password]',
+                'first_name'    => 'required',
+                'nik'           => 'required',
+                'email'         => 'required|valid_email',
+                'phone'         => 'required',
+                'position'      => 'required',
+                'groups'        => 'required' 
             ];
             
             if ($this->validate($rules)) {
                 $user = $this->request->getPost();
                 unset($user['submit'], $user['password_conf']);
                 
-                $user['birth_date'] = strtotime($user['birth_date']);
+                $user['birth_date']  = !empty($user['birth_date']) ? strtotime($user['birth_date']) : 0;
                 $user['create_date'] = time();
                 
-                $db = \Config\Database::connect();
-                foreach (array_keys($data['roles_option']) as $key => $value) {
-                    if ($value == $user['position']) {
-                        $role = pow(2, $key);
-                        $builder = $db->table('groups')->select('group_id')->where('roles', $role);
-                        $query = $builder->get();
-                        foreach ($query->getResult() as $row) {
-                            $user['groups'] = [$row->group_id];
-                            break;
-                        }
-                    }
-                }
+                $user['active']  = isset($user['active']) ? (int)$user['active'] : 1;
+                $user['enabled'] = 1;
+                $user['password_never_expires'] = 1;
                 
                 if ($this->bitauth->add_user($user)) {
-                    $data['script'] = '<script>alert("'. esc($user['username']). ' has been registered successfuly.");</script>';
+                    $db = \Config\Database::connect();
+                    $newUser = $db->table('users')->where('username', $user['username'])->get()->getRow();
+                    
+                    if ($newUser) {
+                        $newUserId = $newUser->user_id;
+                        $picture   = $this->request->getFile('picture');
+                        
+                        $updateData = [
+                            'nik'        => $user['nik'],
+                            'nip'        => $user['nip'] ?? '',
+                            'gender'     => $user['gender'] ?? 0,
+                            'address'    => $user['address'] ?? '',
+                            'position'   => $user['position'],
+                            'birth_date' => $user['birth_date']
+                        ];
+                        
+                        if ($picture && $picture->isValid() && !$picture->hasMoved()) {
+                            $path    = 'uploads/hospital/staff/' . $newUserId . '/';
+                            $newName = $newUserId . '_profile_picture.' . $picture->getExtension();
+                            
+                            $picture->move($path, $newName);
+                            $updateData['picture'] = $path . $newName;
+                        }
+                        
+                        // PERBAIKAN: Menyimpan NIK, NIP, dsb secara dinamis ke userdata
+                        $db->table('userdata')->where('user_id', $newUserId)->update($updateData);
+                    }
+
+                    return redirect()->to('account/users')->with('success', 'Pengguna baru berhasil ditambahkan.');
                 } else {
-                    $data['error'] = '<div class="alert alert-danger">Registring user: '. esc($user['username']). ' is failed.</div>';
+                    return redirect()->back()->withInput()->with('error', 'Gagal menambahkan pengguna ke basis data.');
                 }
             } else {
-                $data['error'] = $this->validator->listErrors();
+                return redirect()->back()->withInput()->with('error', $this->validator->listErrors());
             }
         }
         
-        $data['title'] = 'Sign up'; 
-        $data['id_type_options'] = $this->_id_type_options();
+        $groups = [];
+        foreach ($this->bitauth->get_groups() as $_group) {
+            $groups[$_group->group_id] = $_group->name;
+        }
+        $data['groups'] = $groups;
+        
+        $data['title'] = 'Tambah Pengguna Baru'; 
         
         $path = 'account/add_user';
         if ($this->request->getGet('ajax')) {
@@ -161,7 +277,8 @@ class Account extends BaseController
     {
         $data = [];
         if (!$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
+            // PERBAIKAN ERROR 1: Casting objek URL ke (string)
+            session()->set('redir', (string) current_url());
             return redirect()->to('account/login');
         }
 
@@ -171,15 +288,14 @@ class Account extends BaseController
             }
         }
           
-        if ($this->request->getMethod() === 'post') {
+        if (strtolower($this->request->getMethod()) === 'post') {
+            
             $rules = [
-                'username'  => 'required|trim',
-                'email'     => 'required|trim|valid_email',
-                'gender'    => 'required',
-                'phone'     => 'required|trim',
-                'social_id' => 'required|trim',
-                'id_type'   => 'required|trim',
-                'position'  => 'required|trim'
+                'first_name' => 'required',
+                'email'      => 'required|valid_email',
+                'phone'      => 'required',
+                'position'   => 'required',
+                'nik'        => 'required'
             ];
 
             $postData = $this->request->getPost();
@@ -188,52 +304,77 @@ class Account extends BaseController
                 if (!$this->bitauth->is_admin()) {
                     $rules['old_password'] = 'required';
                 }
-                $rules['password'] = 'required';
+                $rules['password']      = 'required';
                 $rules['password_conf'] = 'required|matches[password]';
             }
 
-            if ($this->validate($rules)) {
-                $user = $postData;
-                unset($user['submit'], $user['password_conf']);
-                
-                $user['active'] = isset($user['active']) ? $user['active'] : 0;
-                $user['enabled'] = isset($user['enabled']) ? $user['enabled'] : 0;
-                $user['password_never_expires'] = isset($user['password_never_expires']) ? $user['password_never_expires'] : 0;
-          
-                if (!$this->bitauth->is_admin()) {
-                    unset($user['active'], $user['enabled'], $user['password_never_expires'], $user['groups[]']);
-                }
+            if (!$this->validate($rules)) {
+                return redirect()->back()->withInput()->with('error', $this->validator->listErrors());
+            }
 
-                // Upload Picture dengan gaya CI4
-                $picture = $this->request->getFile('picture');
-                if ($picture && $picture->isValid() && !$picture->hasMoved()) {
-                    $path = 'uploads/hospital/staff/' . $user_id . '/';
-                    $newName = $user_id . '_profile_picture.' . $picture->getExtension();
-                    
-                    $picture->move($path, $newName);
-                    $user['picture'] = $path . $newName;
-                    
-                    $_user = $this->bitauth->get_user_by_id($user_id);
-                    if (isset($_user->picture) && $_user->picture != $user['picture']) {
-                        @unlink('./' . $_user->picture); 
-                    }
-                }
+            $user = $postData;
+            unset($user['submit'], $user['password_conf']);
 
-                $user['birth_date'] = strtotime($user['birth_date']);
+            if ($this->bitauth->is_admin()) {
+                $user['active'] = isset($user['active']) ? (int)$user['active'] : 0;
+            } else {
+                unset($user['active'], $user['enabled'], $user['password_never_expires'], $user['groups[]']);
+            }
+
+            $user['enabled'] = 1; 
+            $user['password_never_expires'] = 1;
+
+            $picture = $this->request->getFile('picture');
+            if ($picture && $picture->isValid() && !$picture->hasMoved()) {
+                $path    = 'uploads/hospital/staff/' . $user_id . '/';
+                $newName = $user_id . '_profile_picture.' . $picture->getExtension();
                 
-                if (!$this->bitauth->is_admin() && isset($user['password']) && strlen($user['password'])) {
-                    $tmp = $this->bitauth->get_user_by_id($user_id);
-                    if (isset($user['old_password']) && $this->bitauth->check_pass($user['old_password'], $tmp->password)) {
-                        unset($user['old_password']);
-                        $this->bitauth->update_user($user_id, $user);
-                    }
-                } else {
-                    if (isset($user['old_password'])) unset($user['old_password']);
+                $picture->move($path, $newName);
+                $user['picture'] = $path . $newName;
+                
+                $_user = $this->bitauth->get_user_by_id($user_id);
+                if (isset($_user->picture) && $_user->picture != $user['picture'] && file_exists('./' . $_user->picture)) {
+                    @unlink('./' . $_user->picture); 
+                }
+            }
+
+            // PERBAIKAN ERROR 1: Validasi waktu agar nilai kembalian stabil (Integer)
+            $user['birth_date'] = !empty($user['birth_date']) ? strtotime($user['birth_date']) : 0;
+            
+            if (!$this->bitauth->is_admin() && isset($user['password']) && strlen($user['password'])) {
+                $tmp = $this->bitauth->get_user_by_id($user_id);
+                if (isset($user['old_password']) && $this->bitauth->check_pass($user['old_password'], $tmp->password)) {
+                    unset($user['old_password']);
                     $this->bitauth->update_user($user_id, $user);
+                } else {
+                    return redirect()->back()->withInput()->with('error', 'Kata sandi lama tidak cocok.');
                 }
             } else {
-                $data['error'] = $this->validator->listErrors();
+                if (isset($user['old_password'])) unset($user['old_password']);
+                $this->bitauth->update_user($user_id, $user);
             }
+
+            $db = \Config\Database::connect();
+            $updateData = [
+                'first_name' => $user['first_name'],
+                'last_name'  => $user['last_name'] ?? '',
+                'nip'        => $user['nip'] ?? '',
+                'nik'        => $user['nik'],
+                'gender'     => $user['gender'] ?? 0,
+                'email'      => $user['email'],
+                'phone'      => $user['phone'],
+                'address'    => $user['address'] ?? '',
+                'position'   => $user['position'],
+                'birth_date' => $user['birth_date']
+            ];
+            
+            if (isset($user['picture'])) {
+                $updateData['picture'] = $user['picture'];
+            }
+            
+            $db->table('userdata')->where('user_id', $user_id)->update($updateData);
+
+            return redirect()->to('account/users')->with('success', 'Perubahan berhasil dilakukan.');
         }
 
         $groups = [];
@@ -241,11 +382,10 @@ class Account extends BaseController
             $groups[$_group->group_id] = $_group->name;
         }
 
-        $data['title'] = 'Edit User';
-        $data['bitauth'] = $this->bitauth;
+        $data['title']  = 'Edit Pengguna';
+        $data['bitauth']= $this->bitauth;
         $data['groups'] = $groups;
-        $data['user'] = $this->bitauth->get_user_by_id($user_id);
-        $data['id_type_options'] = $this->_id_type_options();
+        $data['user']   = $this->bitauth->get_user_by_id($user_id);
         
         $path = 'account/edit_user';
         if ($this->request->getGet('ajax')) {
@@ -268,23 +408,15 @@ class Account extends BaseController
 
     public function groups($limit = 10, $page = 1)
     {
-        if ($this->bitauth->get_users() && !$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
+        if (!$this->bitauth->logged_in() || !$this->bitauth->is_admin()) {
             return redirect()->to('account/login');
         }
-
-        if ($this->bitauth->get_users() && !$this->bitauth->is_admin()) {
-            return $this->_no_access();
-        }
         
-        $data['title'] = 'Groups';
-        $data['bitauth'] = $this->bitauth;
-        $data['groups'] = $this->bitauth->get_groups();
+        $data['title']   = 'Direktori Grup';
+        $data['groups']  = $this->bitauth->get_groups();
         
-        $data['total_rows'] = count($data['groups']);
-        $data['page'] = (int)$page;
-        $data['per_page'] = (int)$limit;
-        $data['pagination'] = ""; // Pagination CI4
+        // BARIS PERBAIKAN: Mengirimkan identitas admin ke View agar tombol Aksi muncul
+        $data['bitauth'] = $this->bitauth; 
         
         $path = 'account/groups';
         if ($this->request->getGet('ajax')) {
@@ -297,47 +429,70 @@ class Account extends BaseController
 
     public function add_group()
     {
-        // Cek Login & Admin
-        if (!$this->bitauth->logged_in()) return redirect()->to('account/login');
-        if (!$this->bitauth->is_admin()) return $this->_no_access();
+        if (!$this->bitauth->logged_in() || !$this->bitauth->is_admin()) {
+            return redirect()->to('account/login');
+        }
 
         $data = [];
 
-        // Perbaikan: Gunakan strtolower agar mendeteksi 'POST' dari browser
         if (strtolower($this->request->getMethod()) === 'post') {
-            // Perbaikan: Hapus 'trim' dari rules validasi CI4
-            $rules = [
-                'name' => 'required' 
-            ];
+            $rules = ['name' => 'required'];
 
             if ($this->validate($rules)) {
                 $postData = $this->request->getPost();
-                unset($postData['submit']);
+                $db = \Config\Database::connect();
                 
-                if($this->bitauth->add_group($postData)) {
-                    return redirect()->to('account/groups')->with('success', 'Group added successfully');
+                // Kalkulasi Bitmask untuk Hak Akses (Roles)
+                $rolesMask = 0;
+                if (!empty($postData['roles'])) {
+                    $all_roles = $this->bitauth->get_roles();
+                    $role_keys = array_keys($all_roles);
+                    foreach ($postData['roles'] as $r) {
+                        $idx = array_search($r, $role_keys);
+                        if ($idx !== false) {
+                            $rolesMask |= (1 << $idx); // Formula 2^n
+                        }
+                    }
                 }
+
+                // Bypass Library: Insert langsung ke database
+                $db->table('groups')->insert([
+                    'name'        => $postData['name'],
+                    'description' => $postData['description'] ?? '',
+                    'roles'       => $rolesMask
+                ]);
+                $newGroupId = $db->insertID();
+
+                // Memasukkan anggota (members) jika ada
+                if (!empty($postData['members'])) {
+                    $insertMemberData = [];
+                    foreach ($postData['members'] as $userId) {
+                        $insertMemberData[] = [
+                            'user_id'  => (int)$userId,
+                            'group_id' => $newGroupId
+                        ];
+                    }
+                    $db->table('user_group')->insertBatch($insertMemberData);
+                }
+
+                return redirect()->to('account/groups')->with('success', 'Grup baru berhasil dibuat beserta anggotanya.');
             } else {
                 $data['error'] = $this->validator->listErrors();
             }
         }
 
-        // Ambil data User untuk pilihan Members
         $users = [];
-        $all_users = $this->bitauth->get_users();
-        if ($all_users) {
+        if ($all_users = $this->bitauth->get_users()) {
             foreach ($all_users as $_user) {
-                $users[$_user->user_id] = $_user->first_name . ' ' . $_user->last_name;
+                $users[$_user->user_id] = trim($_user->first_name . ' ' . $_user->last_name);
             }
+            asort($users); 
         }
 
-        $data['title'] = 'Add Group';
+        $data['title'] = 'Membuat Grup Baru';
         $data['roles'] = $this->bitauth->get_roles();
         $data['users'] = $users;
         
-        // Pastikan variabel ini dikirim sebagai array kosong agar View tidak error
-        $data['selected_users'] = []; 
-
         $path = 'account/add_group';
         if ($this->request->getGet('ajax')) {
             return view($path, $data);
@@ -347,84 +502,96 @@ class Account extends BaseController
         }
     }
 
-    public function remove_group($group_id = 0)
-    {
-        if ($this->bitauth->get_users() && !$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
-            return redirect()->to('account/login');
-        }
-
-        if ($this->bitauth->get_users() && !$this->bitauth->is_admin()) {
-            return $this->_no_access();
-        }
-        
-        if ($this->request->getMethod() === 'post') {
-            if ($this->request->getPost('del')) {
-                $this->bitauth->delete_group($group_id);
-                return redirect()->to('account/groups');
-            }
-        }
-        
-        $data['title'] = 'Delete Group';
-        $data['url'] = 'account/remove_group/' . $group_id;
-        $group = $this->bitauth->get_group_by_id($group_id);
-        $data['id'] = $group->group_id;
-        $data['name'] = $group->name;
-        
-        return view('account/confirm_delete', $data);
-    }
-
     public function edit_group($group_id = 0)
     {
-        if ($this->bitauth->get_users() && !$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
+        if (!$this->bitauth->logged_in() || !$this->bitauth->is_admin()) {
             return redirect()->to('account/login');
         }
 
-        if ($this->bitauth->get_users() && !$this->bitauth->is_admin()) {
-            return $this->_no_access();
-        }
+        $db = \Config\Database::connect();
 
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'name' => 'required|trim'
-            ];
+        if (strtolower($this->request->getMethod()) === 'post') {
+            $rules = ['name' => 'required'];
 
             if ($this->validate($rules)) {
                 $postData = $this->request->getPost();
-                unset($postData['submit']);
-                $this->bitauth->update_group($group_id, $postData);
-                echo '<script>alert("Group edited successfully.");</script>';
-                return;
+                
+                // Kalkulasi ulang Bitmask Hak Akses
+                $rolesMask = 0;
+                if (!empty($postData['roles'])) {
+                    $all_roles = $this->bitauth->get_roles();
+                    $role_keys = array_keys($all_roles);
+                    foreach ($postData['roles'] as $r) {
+                        $idx = array_search($r, $role_keys);
+                        if ($idx !== false) {
+                            $rolesMask |= (1 << $idx);
+                        }
+                    }
+                }
+
+                $groupUpdateData = [
+                    'name'  => $postData['name'],
+                    'roles' => $rolesMask // PERBAIKAN: Memastikan pembaruan hak akses tersimpan
+                ];
+                if (isset($postData['description'])) {
+                    $groupUpdateData['description'] = $postData['description'];
+                }
+
+                $db->table('groups')->where('group_id', $group_id)->update($groupUpdateData);
+
+                $members = isset($postData['members']) ? $postData['members'] : [];
+                
+                $db->table('user_group')->where('group_id', $group_id)->delete();
+                
+                if (!empty($members)) {
+                    $insertMemberData = [];
+                    foreach ($members as $userId) {
+                        $insertMemberData[] = [
+                            'user_id'  => (int)$userId,
+                            'group_id' => (int)$group_id
+                        ];
+                    }
+                    $db->table('user_group')->insertBatch($insertMemberData);
+                }
+
+                return redirect()->to('account/groups')->with('success', 'Pembaruan grup dan otorisasi berhasil disimpan.');
             }
         }
 
         $data = [];
         $users = [];
-        foreach ($this->bitauth->get_users() as $_user) {
-            $users[$_user->user_id] = $_user->first_name . ' ' . $_user->last_name;
+        if ($all_users = $this->bitauth->get_users()) {
+            foreach ($all_users as $_user) {
+                $users[$_user->user_id] = trim($_user->first_name . ' ' . $_user->last_name);
+            }
+            asort($users);
         }
 
-        if ($group = $this->bitauth->get_group_by_id($group_id)) {
+        $group = $db->table('groups')->where('group_id', $group_id)->get()->getRow();
+
+        if ($group) {
+            $membersQuery = $db->table('user_group')->where('group_id', $group_id)->get()->getResult();
+            $group->members = [];
+            foreach ($membersQuery as $row) {
+                $group->members[] = $row->user_id;
+            }
+
             $role_list = [];
             $roles = $this->bitauth->get_roles();
             
-            $encrypter = \Config\Services::encrypter(); // Memanggil library encrypt CI4
-            
             foreach ($roles as $_slug => $_desc) {
-                // Konversi enkripsi lama ke baru
-                if ($this->bitauth->has_role($_slug, $encrypter->decrypt($group->roles), FALSE)) {
+                if ($this->bitauth->has_role($_slug, $group->roles)) {
                     $role_list[] = $_slug;
                 }
             }
-            $data['title'] = 'Edit Group ' . $group->name;
-            $data['bitauth'] = $this->bitauth;
-            $data['roles'] = $roles;
-            $data['group'] = $group;
+            
+            $data['title']       = 'Edit Grup: ' . $group->name;
+            $data['roles']       = $roles;
+            $data['group']       = $group;
             $data['group_roles'] = $role_list;
-            $data['users'] = $users;
+            $data['users']       = $users;
         } else {
-            $data['title'] = 'Edit Group';
+            return redirect()->to('account/groups')->with('error', 'Grup tidak ditemukan.');
         }
         
         $path = 'account/edit_group';
@@ -434,6 +601,34 @@ class Account extends BaseController
             $data['includes'] = [$path];
             return view('header', $data) . view('index', $data) . view('footer', $data);
         }
+    }
+
+    public function delete_group($group_id = 0)
+    {
+        if (!$this->bitauth->logged_in() || !$this->bitauth->is_admin()) {
+            return redirect()->to('account/login');
+        }
+        
+        $db = \Config\Database::connect();
+        
+        // PERBAIKAN: Membuka transaksi untuk menjamin kedua tabel terhapus bersamaan
+        $db->transStart();
+        
+        // 1. Hapus semua relasi pengguna yang tergabung di grup ini terlebih dahulu
+        $db->table('user_group')->where('group_id', $group_id)->delete();
+        
+        // 2. Hapus data utama grup tersebut
+        $db->table('groups')->where('group_id', $group_id)->delete();
+        
+        // Menutup dan mengevaluasi transaksi
+        $db->transComplete();
+
+        // Jika terjadi kegagalan di level database, batalkan dan beri tahu admin
+        if ($db->transStatus() === false) {
+            return redirect()->to('account/groups')->with('error', 'Gagal menghapus grup karena kesalahan sistem basis data.');
+        }
+
+        return redirect()->to('account/groups')->with('success', 'Grup beserta seluruh hak akses anggotanya berhasil dihapus secara permanen.');
     }
 
     public function activate($activation_code)
@@ -461,7 +656,8 @@ class Account extends BaseController
     public function checkAuth($perm_key = 0) 
     {
         if (!$this->bitauth->logged_in()) {
-            session()->set('redir', current_url());
+            // PERBAIKAN ERROR 1: Casting objek URL ke (string)
+            session()->set('redir', (string) current_url());
             return redirect()->to('account/login');
         }
         if ($this->bitauth->has_permission($perm_key)) {
@@ -474,7 +670,8 @@ class Account extends BaseController
     public function logout()
     {
         $this->bitauth->logout();
-        return redirect()->to('home');
+        // Mengubah arah redirect dari 'home' menjadi halaman login
+        return redirect()->to('account/login');
     }
   
     public function _no_access()
@@ -489,20 +686,19 @@ class Account extends BaseController
         }
     }
 
-public function generate_dummy()
+    public function generate_dummy()
     {
         $db = \Config\Database::connect();
         
-        // 1. Buat data grup (Role) sesuai Bitauth.php asli
+        // PERBAIKAN: Penyesuaian nama grup dan deskripsi agar sinkron dengan tabel `groups` di clinic.sql
         $groups = [
-            ['name' => 'Administrator', 'description' => 'Sistem Admin', 'roles' => 1],
-            ['name' => 'Guest', 'description' => 'Tamu', 'roles' => 2],
-            ['name' => 'Doctor', 'description' => 'Dokter Klinik', 'roles' => 4],
-            ['name' => 'X-Ray Agent', 'description' => 'Staff Radiologi (X-Ray)', 'roles' => 8],
-            ['name' => 'Laboratory Agent', 'description' => 'Staff Laboratorium', 'roles' => 16],
-            ['name' => 'Pharmacy Agent', 'description' => 'Apoteker', 'roles' => 32],
-            ['name' => 'Receptionist', 'description' => 'Resepsionis Klinik', 'roles' => 64],
-            ['name' => 'Patient', 'description' => 'Pasien', 'roles' => 128],
+            ['name' => 'Administrator', 'description' => 'Memiliki kendali penuh atas manajemen pengguna, grup hak akses, dan pengaturan inti sistem.', 'roles' => 1],
+            ['name' => 'Dokter', 'description' => 'Menganalisis rekam medis, membuat resep obat, serta merujuk tes lab dan radiologi.', 'roles' => 4],
+            ['name' => 'Radiografer', 'description' => 'Mengelola jadwal pasien, mengunggah hasil pindai X-Ray, dan memperbarui rekam radiologi.', 'roles' => 8],
+            ['name' => 'Analis Lab', 'description' => 'Mengelola jadwal tes laboratorium, menginput hasil tes sampel, dan menerbitkan dokumen lab.', 'roles' => 16],
+            ['name' => 'Apoteker', 'description' => 'Mengelola inventaris obat, memperbarui stok, dan mencatat transaksi pengambilan resep.', 'roles' => 32],
+            ['name' => 'Resepsionis', 'description' => 'Mengatur pendaftaran pasien, mengelola antrean harian, dan mencetak tagihan pembayaran.', 'roles' => 64],
+            ['name' => 'Pasien', 'description' => 'Akses mandiri untuk melihat riwayat kunjungan, hasil lab/X-Ray, dan status antrean.', 'roles' => 128],
         ];
         
         foreach ($groups as $g) {
@@ -511,29 +707,28 @@ public function generate_dummy()
             }
         }
 
-        // Ambil ID grup yang baru dibuat (Pastikan namanya sama persis)
+        // PERBAIKAN: Pemanggilan string nama grup disesuaikan dengan bahasa Indonesia
         $idAdmin  = $db->table('groups')->where('name', 'Administrator')->get()->getRow()->group_id;
-        $idDoctor = $db->table('groups')->where('name', 'Doctor')->get()->getRow()->group_id;
-        $idResep  = $db->table('groups')->where('name', 'Receptionist')->get()->getRow()->group_id;
-        $idLab    = $db->table('groups')->where('name', 'Laboratory Agent')->get()->getRow()->group_id;
-        $idApotek = $db->table('groups')->where('name', 'Pharmacy Agent')->get()->getRow()->group_id;
-        $idXray   = $db->table('groups')->where('name', 'X-Ray Agent')->get()->getRow()->group_id;
-        $idPasien = $db->table('groups')->where('name', 'Patient')->get()->getRow()->group_id;
+        $idDoctor = $db->table('groups')->where('name', 'Dokter')->get()->getRow()->group_id;
+        $idResep  = $db->table('groups')->where('name', 'Resepsionis')->get()->getRow()->group_id;
+        $idLab    = $db->table('groups')->where('name', 'Analis Lab')->get()->getRow()->group_id;
+        $idApotek = $db->table('groups')->where('name', 'Apoteker')->get()->getRow()->group_id;
+        $idXray   = $db->table('groups')->where('name', 'Radiografer')->get()->getRow()->group_id;
+        $idPasien = $db->table('groups')->where('name', 'Pasien')->get()->getRow()->group_id;
 
-        // 2. Setup Data Dasar User (menghindari error wajib isi di database)
+        // Setup Data Dasar User
+        // PERBAIKAN: gender disesuaikan menjadi integer (1/0) karena kolom di database adalah tinyint(1)
         $baseData = [
-            'gender'      => 'Male',
+            'gender'      => 1, // Asumsi 1 = Laki-laki, 0 = Perempuan
             'email'       => 'dummy@klinik.com',
             'phone'       => '08123456789',
-            'social_id'   => '-',
-            'id_type'     => 'Tazkara',
             'active'      => 1,
             'enabled'     => 1,
             'birth_date'  => time(), 
             'create_date' => time()
         ];
 
-        // 3. Buat Akun Dummy
+        // Buat Akun Dummy
         $usersToCreate = [
             array_merge($baseData, [
                 'username'   => 'admin',
@@ -548,7 +743,7 @@ public function generate_dummy()
                 'password'   => 'dokter123',
                 'first_name' => 'Dr. Budi',
                 'last_name'  => 'Santoso',
-                'position'   => 'Doctor',
+                'position'   => 'Dokter Umum',
                 'groups'     => [$idDoctor]
             ]),
             array_merge($baseData, [
@@ -556,8 +751,8 @@ public function generate_dummy()
                 'password'   => 'resep123',
                 'first_name' => 'Siti',
                 'last_name'  => 'Rahayu',
-                'position'   => 'Receptionist',
-                'gender'     => 'Female',
+                'position'   => 'Resepsionis',
+                'gender'     => 0,
                 'groups'     => [$idResep]
             ]),
             array_merge($baseData, [
@@ -565,7 +760,7 @@ public function generate_dummy()
                 'password'   => 'lab123',
                 'first_name' => 'Budi',
                 'last_name'  => 'Laboratorium',
-                'position'   => 'Laboratorist',
+                'position'   => 'Analis Lab',
                 'groups'     => [$idLab]
             ]),
             array_merge($baseData, [
@@ -573,8 +768,8 @@ public function generate_dummy()
                 'password'   => 'apotek123',
                 'first_name' => 'Ani',
                 'last_name'  => 'Apoteker',
-                'position'   => 'Pharmacist',
-                'gender'     => 'Female',
+                'position'   => 'Apoteker',
+                'gender'     => 0,
                 'groups'     => [$idApotek]
             ]),
             array_merge($baseData, [
@@ -582,7 +777,7 @@ public function generate_dummy()
                 'password'   => 'xray123',
                 'first_name' => 'Joko',
                 'last_name'  => 'Radiologi',
-                'position'   => 'Radiologist',
+                'position'   => 'Radiografer',
                 'groups'     => [$idXray]
             ]),
             array_merge($baseData, [
@@ -590,21 +785,19 @@ public function generate_dummy()
                 'password'   => 'pasien123',
                 'first_name' => 'Pasien',
                 'last_name'  => 'Satu',
-                'position'   => 'Patient',
+                'position'   => 'Pasien',
                 'groups'     => [$idPasien]
             ])
         ];
 
         foreach ($usersToCreate as $user) {
-            // Cek apakah username sudah ada biar tidak dobel
             if ($db->table('users')->where('username', $user['username'])->countAllResults() == 0) {
                 $this->bitauth->add_user($user);
             }
         }
 
-        // TAMPILAN PESAN SUKSES
         $html = "<h1 style='color:green;'>Sukses!</h1>";
-        $html .= "<p>Data dummy berhasil dimasukkan ke SQL. Silakan login menggunakan akun berikut:</p>";
+        $html .= "<p>Data dummy berhasil disinkronkan ke SQL. Silakan login menggunakan akun berikut:</p>";
         $html .= "<ul>
                     <li><b>Admin:</b> admin <br> <b>Password:</b> admin123</li>
                     <li><b>Dokter:</b> dokter1 <br> <b>Password:</b> dokter123</li>
@@ -616,5 +809,30 @@ public function generate_dummy()
                   </ul>";
                   
         return $html;
+    }
+
+    /**
+     * Mengubah status akun (Suspend / Aktifkan)
+     */
+    public function toggle_status($user_id = 0)
+    {
+        if (!$this->bitauth->logged_in() || !$this->bitauth->is_admin()) {
+            return redirect()->to('account/login');
+        }
+
+        $user = $this->bitauth->get_user_by_id($user_id);
+        
+        if ($user) {
+            // Jika status 1 (Aktif) maka ubah ke 0 (Suspend), dan sebaliknya
+            $new_status = $user->active == 1 ? 0 : 1;
+            
+            // Eksekusi perubahan ke database
+            $this->bitauth->update_user($user_id, ['active' => $new_status]);
+            
+            $msg = $new_status == 0 ? 'Status akun berhasil diubah menjadi SUSPEND.' : 'Akun berhasil DIAKTIFKAN kembali.';
+            return redirect()->to('account/users')->with('success', $msg);
+        }
+        
+        return redirect()->to('account/users')->with('error', 'Pengguna tidak ditemukan.');
     }
 }
