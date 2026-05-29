@@ -48,18 +48,43 @@
       <header>
         <section>
           <?php
-            // Memanggil navigasi atau logo sesuai status login
-            // Menggunakan pengecekan variabel dari Controller agar tidak error di CI4
-            if (isset($is_logged_in) && $is_logged_in === true) {
-                echo view('repository/nav');
-            } elseif (isset($bitauth) && $bitauth->logged_in()) {
-                // Fallback jika masih menggunakan library bawaan CI3
-                echo view('repository/nav');
+            $headerLoggedIn = false;
+            $headerBitauth  = null;
+
+            $currentRoute = trim(uri_string(), '/');
+
+            // Halaman yang benar-benar publik saja
+            $publicRoutes = [
+                'account/login',
+                'account/register',
+                'account/register_patient',
+                'account/patient_register'
+            ];
+
+            $isPublicHeader = in_array($currentRoute, $publicRoutes, true);
+
+            try {
+                $headerBitauth = (isset($bitauth) && $bitauth instanceof \App\Libraries\Bitauth)
+                    ? $bitauth
+                    : new \App\Libraries\Bitauth();
+
+                $headerLoggedIn = $headerBitauth->logged_in();
+            } catch (\Throwable $e) {
+                $headerLoggedIn = false;
+            }
+
+            if ($headerLoggedIn && !$isPublicHeader) {
+                echo view('repository/nav', [
+                    'title'   => $title ?? '',
+                    'bitauth' => $headerBitauth
+                ]);
             } else {
-                echo view('repository/logo');
+                echo view('repository/logo', [
+                    'title' => $title ?? 'Sistem Manajemen Klinik'
+                ]);
             }
           ?>
-        </section>
+          </section>
         <div id="fixedNavPadding" style="margin-bottom: 72px;" class="hidden"></div>
       </header>
       

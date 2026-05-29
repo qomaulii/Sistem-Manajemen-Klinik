@@ -176,14 +176,18 @@ class Bitauth
     public function logout()
     {
         $session_data = $this->session->get();
+
         foreach ($session_data as $_key => $_value) {
-            if (substr($_key, 0, strlen($this->_cookie_elem_prefix)) !== $this->_cookie_elem_prefix) {
+            // Hapus semua session milik Bitauth seperti:
+            // ba_username, ba_user_id, ba_first_name, ba_roles, dll.
+            if (substr($_key, 0, strlen($this->_cookie_elem_prefix)) === $this->_cookie_elem_prefix) {
                 $this->session->remove($_key);
             }
         }
 
         unset($this->username);
         $this->delete_remember_token();
+
         return;
     }
 

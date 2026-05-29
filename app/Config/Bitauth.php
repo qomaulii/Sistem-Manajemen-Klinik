@@ -67,12 +67,12 @@ class Bitauth extends BaseConfig
      */
     public $roles = [
         'admin'        => 'Administrator',
-        'guest'        => 'Guest',
-        'doctor'       => 'Doctor',
-        'xray'         => 'X-Ray Agent',
-        'lab'          => 'Laboratory Agent',
-        'pharmacy'     => 'Pharmacy Agent',
-        'receptionist' => 'Receptionist',
-        'patient'      => 'Patient',
+        'guest'        => 'Tamu',
+        'doctor'       => 'Dokter',
+        'xray'         => 'Petugas Radiologi',
+        'lab'          => 'Petugas Laboratorium',
+        'pharmacy'     => 'Apoteker',
+        'receptionist' => 'Resepsionis',
+        'patient'      => 'Pasien',
     ];
 }

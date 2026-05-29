@@ -490,7 +490,10 @@ class Account extends BaseController
         }
 
         $data['title'] = 'Membuat Grup Baru';
-        $data['roles'] = $this->bitauth->get_roles();
+        $roles = $this->bitauth->get_roles();
+        unset($roles['guest']); // Guest tidak dipakai, jadi tidak ditampilkan di form
+
+        $data['roles'] = $roles;
         $data['users'] = $users;
         
         $path = 'account/add_group';
@@ -577,14 +580,20 @@ class Account extends BaseController
             }
 
             $role_list = [];
-            $roles = $this->bitauth->get_roles();
-            
-            foreach ($roles as $_slug => $_desc) {
+
+            // Ambil semua role asli untuk hitung bitmask agar tidak rusak
+            $all_roles = $this->bitauth->get_roles();
+
+            foreach ($all_roles as $_slug => $_desc) {
                 if ($this->bitauth->has_role($_slug, $group->roles)) {
                     $role_list[] = $_slug;
                 }
             }
-            
+
+            // Role yang ditampilkan di form, guest disembunyikan
+            $roles = $all_roles;
+            unset($roles['guest']);
+
             $data['title']       = 'Edit Grup: ' . $group->name;
             $data['roles']       = $roles;
             $data['group']       = $group;
@@ -670,8 +679,20 @@ class Account extends BaseController
     public function logout()
     {
         $this->bitauth->logout();
-        // Mengubah arah redirect dari 'home' menjadi halaman login
-        return redirect()->to('account/login');
+
+        session()->remove([
+            'ba_user_id',
+            'ba_username',
+            'ba_first_name',
+            'ba_last_name',
+            'ba_email',
+            'ba_roles',
+            'ba_group_id',
+            'ba_remember_me',
+            'redir'
+        ]);
+
+        return redirect()->to(base_url('account/login'));
     }
   
     public function _no_access()

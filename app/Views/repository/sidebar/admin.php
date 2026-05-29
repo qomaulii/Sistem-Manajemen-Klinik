@@ -45,7 +45,7 @@
             <tr>
               <td style="padding: 10px 15px;">
                 <span class="glyphicon glyphicon-log-out text-danger" style="margin-right: 8px;"></span> 
-                <a href="<?= base_url('account/logout') ?>" style="text-decoration: none; color: #d9534f; font-weight: bold;">Keluar (Logout)</a>
+                <a href="<?= base_url('account/logout') ?>" style="text-decoration: none; color: #d9534f; font-weight: bold;">Logout</a>
               </td>
             </tr>
           </tbody>

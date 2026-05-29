@@ -25,15 +25,15 @@
     
     <article class="<?= $colClass ?>" id="mainContent" style="<?= $is_public_page ? 'margin-top: 40px;' : '' ?>"> 
         <?php 
-        if (isset($view_content)) {
-            echo view($view_content);
-        } 
-        // TAMBAHKAN LOGIKA: Hanya tampilkan dasbor jika TIDAK di halaman publik DAN sudah login
-        elseif (!$is_public_page && isset($bitauth) && $bitauth->logged_in()) {
+            $has_includes = isset($includes) && is_array($includes) && count($includes) > 0;
+
+            if (isset($view_content)) {
+                echo view($view_content);
+            }elseif (!$has_includes && !$is_public_page && isset($bitauth) && $bitauth->logged_in()) {
             if ($bitauth->has_role('patient') && !$bitauth->is_admin()) {
                 // Tampilan dasbor Pasien
                 ?>
-                <div style="padding: 24px; background-color: #ffffff; border-left: 5px solid #3498db; ...">
+                <div style="margin-top: 20px; margin-bottom: 20px; padding: 24px; background-color: #ffffff; border-left: 5px solid #3498db; ...">
                     <h3>Portal Rekam Medis Pasien</h3>
                     <p>Selamat datang, Anda dapat melihat riwayat kunjungan melalui menu di samping.</p>
                 </div>
@@ -49,8 +49,7 @@
             }
         }
         
-        // Memuat form login/register/dll
-        if (isset($includes) && is_array($includes)) {
+        if ($has_includes) {
             foreach ($includes as $include) {
                 echo view($include);
             }

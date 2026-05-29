@@ -11,6 +11,9 @@
                 <p><strong>Alamat:</strong> <?= esc($patient->address) ?></p>
             </div>
         </div>
+        <a href="<?= base_url('doctor/add_medical_note/' . $patient->user_id) ?>" class="btn btn-primary">
+            Tambah Catatan Medis
+        </a><br><br>
     </div>
 </div>
 

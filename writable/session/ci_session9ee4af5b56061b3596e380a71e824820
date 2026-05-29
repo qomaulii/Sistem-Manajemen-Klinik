@@ -1,0 +1,6 @@
+__ci_last_regenerate|i:1780017154;_ci_previous_url|s:74:"http://localhost/Sistem-Manajemen-Klinik/public/index.php/account/register";csrf_test_name|s:32:"aeab1c04a13beb0170b5b38a1aeb63cc";__ci_vars|a:3:{s:13:"_ci_old_input";s:3:"old";s:21:"_ci_validation_errors";s:3:"old";s:5:"error";s:3:"old";}_ci_old_input|a:2:{s:3:"get";a:0:{}s:4:"post";a:13:{s:8:"username";s:6:"liya21";s:8:"password";s:7:"qomaaul";s:13:"password_conf";s:7:"qomaaul";s:10:"first_name";s:4:"qoma";s:9:"last_name";s:3:"aul";s:3:"nik";s:16:"1234567890123456";s:3:"nip";s:0:"";s:10:"birth_date";s:10:"2007-08-31";s:6:"gender";s:1:"0";s:5:"email";s:13:"qom@gmail.com";s:5:"phone";s:12:"081234567890";s:7:"address";s:7:"Mataram";s:6:"submit";s:0:"";}}_ci_validation_errors|a:1:{s:8:"username";s:47:"The username field must contain a unique value.";}error|s:122:"	<div class="errors" role="alert">
+		<ul>
+					<li>The username field must contain a unique value.</li>
+				</ul>
+	</div>
+";

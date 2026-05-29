@@ -90,4 +90,66 @@ class Billing extends BaseController
             return redirect()->back()->with('error', 'Gagal menyimpan tagihan.');
         }
     }
+
+    public function print_receipt($visit_id)
+    {
+        $db = \Config\Database::connect();
+
+        $db->transStart();
+
+        $db->table('billing')
+            ->where('visit_id', $visit_id)
+            ->update([
+                'payment_status' => 'Paid',
+                'paid_date'      => time()
+            ]);
+
+        $this->_reduceDrugStock($visit_id);
+
+        $db->table('patient_visits')
+            ->where('visit_id', $visit_id)
+            ->update([
+                'payment_status' => 'Sudah Bayar',
+                'status'         => 'Selesai'
+            ]);
+
+        $db->transComplete();
+
+        $data['billing'] = $db->table('billing')
+            ->where('visit_id', $visit_id)
+            ->get()
+            ->getRow();
+
+        $data['items'] = $db->table('visit_items')
+            ->where('visit_id', $visit_id)
+            ->get()
+            ->getResult();
+
+        return view('billing/receipt', $data);
+    }
+
+    private function _reduceDrugStock($visit_id)
+    {
+        $db = \Config\Database::connect();
+
+        $items = $db->table('visit_items')
+            ->where('visit_id', $visit_id)
+            ->where('item_type', 'OBAT')
+            ->get()
+            ->getResult();
+
+        foreach ($items as $item) {
+            $db->table('service_items')
+                ->where('item_id', $item->item_id)
+                ->where('item_type', 'OBAT')
+                ->set('stock', 'GREATEST(stock - ' . (int) $item->qty . ', 0)', false)
+                ->update();
+        }
+
+        $db->table('prescriptions')
+            ->where('visit_id', $visit_id)
+            ->update([
+                'status' => 'Diserahkan'
+            ]);
+    }
 }

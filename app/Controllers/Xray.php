@@ -310,6 +310,231 @@ class Xray extends BaseController
         return view('xray/details', $data);
     }
 
+    private function _check_access()
+    {
+        $bitauth = new \App\Libraries\Bitauth();
+
+        if (!$bitauth->logged_in()) {
+            session()->set('redir', current_url());
+            return redirect()->to('account/login');
+        }
+
+        return true;
+    }
+
+    private function _xrayBaseQuery()
+    {
+        $db = \Config\Database::connect();
+
+        return $db->table('xray_requests xr')
+            ->select("
+                xr.*,
+                pv.queue_number,
+                pasien.first_name AS patient_first_name,
+                pasien.last_name AS patient_last_name,
+                dokter.first_name AS doctor_first_name,
+                dokter.last_name AS doctor_last_name,
+                si.item_name AS xray_name
+            ")
+            ->join('patient_visits pv', 'pv.visit_id = xr.visit_id', 'left')
+            ->join('userdata pasien', 'pasien.user_id = xr.patient_id', 'left')
+            ->join('userdata dokter', 'dokter.user_id = xr.doctor_id', 'left')
+            ->join('service_items si', 'si.item_id = xr.xray_id AND si.item_type = "XRAY"', 'left');
+    }
+
+    private function _getXrayRequest($request_id)
+    {
+        return $this->_xrayBaseQuery()
+            ->where('xr.request_id', $request_id)
+            ->get()
+            ->getRow();
+    }
+
+    private function _syncXrayResultToMedicalRecord($request)
+    {
+        $db = \Config\Database::connect();
+
+        if (!$request || empty($request->visit_id) || empty($request->xray_id)) {
+            return;
+        }
+
+        $visitItem = $db->table('visit_items')
+            ->where('visit_id', $request->visit_id)
+            ->where('item_id', $request->xray_id)
+            ->where('item_type', 'XRAY')
+            ->get()
+            ->getRow();
+
+        if ($visitItem) {
+            $db->table('visit_items')
+                ->where('visit_item_id', $visitItem->visit_item_id)
+                ->update([
+                    'note' => $request->result_note
+                ]);
+
+            $db->table('medical_record_details')
+                ->where('visit_item_id', $visitItem->visit_item_id)
+                ->update([
+                    'result_note' => $request->result_note
+                ]);
+        }
+    }
+
+    public function queue()
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $data['requests'] = $this->_xrayBaseQuery()
+            ->where('xr.status', 'Pending')
+            ->orderBy('xr.created_at', 'ASC')
+            ->get()
+            ->getResult();
+
+        $data['title'] = 'Daftar Antrean Pasien X-Ray';
+        $data['includes'] = ['xray/queue'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function results()
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $data['results'] = $this->_xrayBaseQuery()
+            ->where('xr.status', 'Selesai')
+            ->orderBy('xr.completed_at', 'DESC')
+            ->get()
+            ->getResult();
+
+        $data['title'] = 'Lihat Daftar X-Ray';
+        $data['includes'] = ['xray/results_list'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function input_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $request = $this->_getXrayRequest($request_id);
+
+        if (!$request) {
+            return redirect()->to('xray/queue')
+                ->with('error', 'Data permintaan x-ray tidak ditemukan.');
+        }
+
+        if ($this->request->is('post')) {
+            $resultNote = trim($this->request->getPost('result_note'));
+            $proofNote  = trim($this->request->getPost('proof_note'));
+
+            if ($resultNote === '') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Hasil x-ray wajib diisi.');
+            }
+
+            $db->table('xray_requests')
+                ->where('request_id', $request_id)
+                ->update([
+                    'result_note'  => $resultNote,
+                    'proof_note'   => $proofNote,
+                    'status'       => 'Selesai',
+                    'completed_at' => time()
+                ]);
+
+            $updatedRequest = $this->_getXrayRequest($request_id);
+            $this->_syncXrayResultToMedicalRecord($updatedRequest);
+
+            return redirect()->to('xray/results')
+                ->with('message', 'Hasil x-ray berhasil disimpan.');
+        }
+
+        $data['title'] = 'Input Hasil X-Ray';
+        $data['request'] = $request;
+        $data['formAction'] = base_url('xray/input_result/' . $request_id);
+        $data['buttonText'] = 'Simpan Hasil X-Ray';
+        $data['includes'] = ['xray/input_result'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function edit_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $request = $this->_getXrayRequest($request_id);
+
+        if (!$request) {
+            return redirect()->to('xray/results')
+                ->with('error', 'Data hasil x-ray tidak ditemukan.');
+        }
+
+        if ($this->request->is('post')) {
+            $resultNote = trim($this->request->getPost('result_note'));
+            $proofNote  = trim($this->request->getPost('proof_note'));
+
+            if ($resultNote === '') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Hasil x-ray wajib diisi.');
+            }
+
+            $db->table('xray_requests')
+                ->where('request_id', $request_id)
+                ->update([
+                    'result_note'  => $resultNote,
+                    'proof_note'   => $proofNote,
+                    'status'       => 'Selesai',
+                    'completed_at' => time()
+                ]);
+
+            $updatedRequest = $this->_getXrayRequest($request_id);
+            $this->_syncXrayResultToMedicalRecord($updatedRequest);
+
+            return redirect()->to('xray/results')
+                ->with('message', 'Hasil x-ray berhasil diperbarui.');
+        }
+
+        $data['title'] = 'Ubah Detail X-Ray';
+        $data['request'] = $request;
+        $data['formAction'] = base_url('xray/edit_result/' . $request_id);
+        $data['buttonText'] = 'Update Hasil X-Ray';
+        $data['includes'] = ['xray/input_result'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function delete_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $db->table('xray_requests')
+            ->where('request_id', $request_id)
+            ->delete();
+
+        return redirect()->to('xray/results')
+            ->with('message', 'Hasil x-ray berhasil dihapus.');
+    }
+
     public function _no_access()
     {
         $data['title'] = 'Unauthorized Access';

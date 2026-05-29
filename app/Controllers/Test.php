@@ -271,6 +271,231 @@ class Test extends BaseController
         }
     }
 
+    private function _check_access()
+    {
+        $bitauth = new \App\Libraries\Bitauth();
+
+        if (!$bitauth->logged_in()) {
+            session()->set('redir', current_url());
+            return redirect()->to('account/login');
+        }
+
+        return true;
+    }
+
+    private function _labBaseQuery()
+    {
+        $db = \Config\Database::connect();
+
+        return $db->table('lab_requests lr')
+            ->select("
+                lr.*,
+                pv.queue_number,
+                pasien.first_name AS patient_first_name,
+                pasien.last_name AS patient_last_name,
+                dokter.first_name AS doctor_first_name,
+                dokter.last_name AS doctor_last_name,
+                si.item_name AS test_name
+            ")
+            ->join('patient_visits pv', 'pv.visit_id = lr.visit_id', 'left')
+            ->join('userdata pasien', 'pasien.user_id = lr.patient_id', 'left')
+            ->join('userdata dokter', 'dokter.user_id = lr.doctor_id', 'left')
+            ->join('service_items si', 'si.item_id = lr.test_id AND si.item_type = "LAB"', 'left');
+    }
+
+    private function _getLabRequest($request_id)
+    {
+        return $this->_labBaseQuery()
+            ->where('lr.request_id', $request_id)
+            ->get()
+            ->getRow();
+    }
+
+    private function _syncLabResultToMedicalRecord($request)
+    {
+        $db = \Config\Database::connect();
+
+        if (!$request || empty($request->visit_id) || empty($request->test_id)) {
+            return;
+        }
+
+        $visitItem = $db->table('visit_items')
+            ->where('visit_id', $request->visit_id)
+            ->where('item_id', $request->test_id)
+            ->where('item_type', 'LAB')
+            ->get()
+            ->getRow();
+
+        if ($visitItem) {
+            $db->table('visit_items')
+                ->where('visit_item_id', $visitItem->visit_item_id)
+                ->update([
+                    'note' => $request->result_note
+                ]);
+
+            $db->table('medical_record_details')
+                ->where('visit_item_id', $visitItem->visit_item_id)
+                ->update([
+                    'result_note' => $request->result_note
+                ]);
+        }
+    }
+
+    public function queue()
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $data['requests'] = $this->_labBaseQuery()
+            ->where('lr.status', 'Pending')
+            ->orderBy('lr.created_at', 'ASC')
+            ->get()
+            ->getResult();
+
+        $data['title'] = 'Daftar Antrean Pasien Lab';
+        $data['includes'] = ['lab/queue'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function results()
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $data['results'] = $this->_labBaseQuery()
+            ->where('lr.status', 'Selesai')
+            ->orderBy('lr.completed_at', 'DESC')
+            ->get()
+            ->getResult();
+
+        $data['title'] = 'Lihat Daftar Hasil Lab';
+        $data['includes'] = ['lab/results_list'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function input_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $request = $this->_getLabRequest($request_id);
+
+        if (!$request) {
+            return redirect()->to('test/queue')
+                ->with('error', 'Data permintaan lab tidak ditemukan.');
+        }
+
+        if ($this->request->is('post')) {
+            $resultNote = trim($this->request->getPost('result_note'));
+            $proofNote  = trim($this->request->getPost('proof_note'));
+
+            if ($resultNote === '') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Hasil lab wajib diisi.');
+            }
+
+            $db->table('lab_requests')
+                ->where('request_id', $request_id)
+                ->update([
+                    'result_note'  => $resultNote,
+                    'proof_note'   => $proofNote,
+                    'status'       => 'Selesai',
+                    'completed_at' => time()
+                ]);
+
+            $updatedRequest = $this->_getLabRequest($request_id);
+            $this->_syncLabResultToMedicalRecord($updatedRequest);
+
+            return redirect()->to('test/results')
+                ->with('message', 'Hasil lab berhasil disimpan.');
+        }
+
+        $data['title'] = 'Input Hasil Lab';
+        $data['request'] = $request;
+        $data['formAction'] = base_url('test/input_result/' . $request_id);
+        $data['buttonText'] = 'Simpan Hasil Lab';
+        $data['includes'] = ['lab/input_result'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function edit_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $request = $this->_getLabRequest($request_id);
+
+        if (!$request) {
+            return redirect()->to('test/results')
+                ->with('error', 'Data hasil lab tidak ditemukan.');
+        }
+
+        if ($this->request->is('post')) {
+            $resultNote = trim($this->request->getPost('result_note'));
+            $proofNote  = trim($this->request->getPost('proof_note'));
+
+            if ($resultNote === '') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Hasil lab wajib diisi.');
+            }
+
+            $db->table('lab_requests')
+                ->where('request_id', $request_id)
+                ->update([
+                    'result_note'  => $resultNote,
+                    'proof_note'   => $proofNote,
+                    'status'       => 'Selesai',
+                    'completed_at' => time()
+                ]);
+
+            $updatedRequest = $this->_getLabRequest($request_id);
+            $this->_syncLabResultToMedicalRecord($updatedRequest);
+
+            return redirect()->to('test/results')
+                ->with('message', 'Hasil lab berhasil diperbarui.');
+        }
+
+        $data['title'] = 'Ubah Detail Lab';
+        $data['request'] = $request;
+        $data['formAction'] = base_url('test/edit_result/' . $request_id);
+        $data['buttonText'] = 'Update Hasil Lab';
+        $data['includes'] = ['lab/input_result'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
+    public function delete_result($request_id)
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $db = \Config\Database::connect();
+
+        $db->table('lab_requests')
+            ->where('request_id', $request_id)
+            ->delete();
+
+        return redirect()->to('test/results')
+            ->with('message', 'Hasil lab berhasil dihapus.');
+    } 
+
     public function _no_access()
     {
         $data['title'] = 'Unauthorized Access';

@@ -4,7 +4,7 @@
       <footer class="footer" style="margin-top: 30px;">
         <div class='alert alert-success hidden-print' style="padding: 10px;">
             <div class='text-right' style="font-size: 12px;">
-                Clinic Management System | &copy; <?= date('Y') ?> Baratali Ghadamalizadeh. All Right Reserved.
+                Clinic Management System | &copy; <?= date('Y') ?> Kelompok 5. All Right Reserved.
             </div>
         </div>
       </footer>
