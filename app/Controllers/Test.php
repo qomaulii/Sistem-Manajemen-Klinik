@@ -95,6 +95,45 @@ class Test extends BaseController
         }
     }
 
+    private function _uploadLabProof($oldFile = null)
+    {
+        $file = $this->request->getFile('proof_file');
+
+        if (!$file || $file->getError() === 4) {
+            return $oldFile;
+        }
+
+        if (!$file->isValid()) {
+            throw new \RuntimeException('File bukti hasil lab tidak valid.');
+        }
+
+        $allowedExt = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'];
+        $ext = strtolower($file->getClientExtension());
+
+        if (!in_array($ext, $allowedExt)) {
+            throw new \RuntimeException('Format file harus jpg, jpeg, png, pdf, doc, atau docx.');
+        }
+
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Ukuran file maksimal 5 MB.');
+        }
+
+        $uploadPath = FCPATH . 'uploads/lab_results/';
+
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        $file->move($uploadPath, $newName);
+
+        if (!empty($oldFile) && file_exists(FCPATH . $oldFile)) {
+            unlink(FCPATH . $oldFile);
+        }
+
+        return 'uploads/lab_results/' . $newName;
+    }
+
     public function delete($test_id = 0)
     {
         $labModel = model('Lab');
@@ -379,13 +418,43 @@ class Test extends BaseController
             . view('footer', $data);
     }
 
-    public function input_result($request_id)
+    public function input_result($request_id = null)
     {
         $check = $this->_check_access();
         if ($check !== true) return $check;
 
         $db = \Config\Database::connect();
 
+        /*
+        * MODE 1:
+        * Kalau masuk dari menu utama test/input_result,
+        * tampilkan pencarian pasien dulu.
+        * Setelah pasien dipilih, form hasil muncul di bawah.
+        */
+        if (empty($request_id)) {
+            $requests = $this->_labBaseQuery()
+                ->whereIn('lr.status', ['Pending', 'Menunggu'])
+                ->orderBy('lr.created_at', 'ASC')
+                ->get()
+                ->getResult();
+
+            $data['title'] = 'Input Hasil Lab';
+            $data['request'] = null;
+            $data['requests'] = $requests;
+            $data['formAction'] = '';
+            $data['buttonText'] = 'Simpan Hasil Lab';
+            $data['includes'] = ['lab/input_result'];
+
+            return view('header', $data)
+                . view('index', $data)
+                . view('footer', $data);
+        }
+
+        /*
+        * MODE 2:
+        * Kalau masuk dari tombol daftar antrean,
+        * langsung buka form pasien yang dipilih.
+        */
         $request = $this->_getLabRequest($request_id);
 
         if (!$request) {
@@ -403,11 +472,20 @@ class Test extends BaseController
                     ->with('error', 'Hasil lab wajib diisi.');
             }
 
+            try {
+                $proofFile = $this->_uploadLabProof($request->proof_file ?? null);
+            } catch (\RuntimeException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $e->getMessage());
+            }
+
             $db->table('lab_requests')
                 ->where('request_id', $request_id)
                 ->update([
                     'result_note'  => $resultNote,
                     'proof_note'   => $proofNote,
+                    'proof_file'   => $proofFile,
                     'status'       => 'Selesai',
                     'completed_at' => time()
                 ]);
@@ -421,6 +499,7 @@ class Test extends BaseController
 
         $data['title'] = 'Input Hasil Lab';
         $data['request'] = $request;
+        $data['requests'] = [];
         $data['formAction'] = base_url('test/input_result/' . $request_id);
         $data['buttonText'] = 'Simpan Hasil Lab';
         $data['includes'] = ['lab/input_result'];
@@ -454,11 +533,20 @@ class Test extends BaseController
                     ->with('error', 'Hasil lab wajib diisi.');
             }
 
+            try {
+                $proofFile = $this->_uploadLabProof($request->proof_file ?? null);
+            } catch (\RuntimeException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $e->getMessage());
+            }
+
             $db->table('lab_requests')
                 ->where('request_id', $request_id)
                 ->update([
                     'result_note'  => $resultNote,
                     'proof_note'   => $proofNote,
+                    'proof_file'   => $proofFile,
                     'status'       => 'Selesai',
                     'completed_at' => time()
                 ]);
@@ -472,6 +560,7 @@ class Test extends BaseController
 
         $data['title'] = 'Ubah Detail Lab';
         $data['request'] = $request;
+        $data['requests'] = [];
         $data['formAction'] = base_url('test/edit_result/' . $request_id);
         $data['buttonText'] = 'Update Hasil Lab';
         $data['includes'] = ['lab/input_result'];

@@ -21,7 +21,7 @@
           <tr>
             <td style="padding: 10px 15px;">
               <span class="glyphicon glyphicon-edit text-info"></span>
-              <a href="<?= base_url('xray/queue') ?>">Input Hasil X-Ray</a>
+              <a href="<?= base_url('xray/input_result') ?>">Input Hasil X-Ray</a>
             </td>
           </tr>
 

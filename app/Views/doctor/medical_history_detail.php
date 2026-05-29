@@ -1,45 +1,34 @@
-<div class="panel panel-default">
-    <div class="panel-heading"><h3 class="panel-title">Profil Pasien</h3></div>
-    <div class="panel-body">
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>Nama:</strong> <?= esc($patient->first_name . ' ' . $patient->last_name) ?></p>
-                <p><strong>NIK:</strong> <?= esc($patient->nik) ?></p>
-            </div>
-            <div class="col-md-6">
-                <p><strong>Telepon:</strong> <?= esc($patient->phone) ?></p>
-                <p><strong>Alamat:</strong> <?= esc($patient->address) ?></p>
-            </div>
-        </div>
-        <a href="<?= base_url('doctor/add_medical_note/' . $patient->user_id) ?>" class="btn btn-primary">
-            Tambah Catatan Medis
-        </a><br><br>
-    </div>
-</div>
+public function medical_history_detail($patient_id)
+{
+    $this->_check_access();
+    $db = \Config\Database::connect();
+    
+    $data['patient'] = $db->table('userdata')
+        ->where('user_id', $patient_id)
+        ->get()
+        ->getRow();
 
-<h4><span class="glyphicon glyphicon-list-alt"></span> Riwayat Pemeriksaan</h4>
-<hr>
+    $history = $db->table('medical_records mr')
+        ->select('mr.*, ud.first_name as doc_first, ud.last_name as doc_last')
+        ->join('userdata ud', 'mr.doctor_id = ud.user_id', 'left')
+        ->where('mr.patient_id', $patient_id)
+        ->orderBy('mr.created_at', 'DESC')
+        ->get()
+        ->getResult();
 
-<?php if (!empty($history)) : ?>
-    <?php foreach ($history as $index => $h) : ?>
-        <div class="media" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 10px;">
-            <div class="media-left">
-                <span class="glyphicon glyphicon-heart" style="font-size: 24px; color: #e74c3c;"></span>
-            </div>
-            <div class="media-body">
-                <h4 class="media-heading">
-                    Kunjungan #<?= $index + 1 ?> 
-                    <small style="float:right;"><?= date('d M Y', $h->created_at) ?></small>
-                </h4>
-                <p><strong>Dokter:</strong> Dr. <?= esc($h->doc_first . ' ' . $h->doc_last) ?></p>
-                <p><strong>Gejala:</strong> <?= esc($h->symptoms) ?></p>
-                <p><strong>Diagnosis:</strong> <?= esc($h->diagnosis) ?></p>
-                <p><strong>Catatan/Tindakan:</strong> <?= esc($h->medical_action) ?></p>
-            </div>
-        </div>
-    <?php endforeach; ?>
-<?php else: ?>
-    <p>Tidak ada riwayat medis ditemukan untuk pasien ini.</p>
-<?php endif; ?>
+    foreach ($history as $h) {
+        $h->details = $db->table('medical_record_details')
+            ->where('record_id', $h->record_id)
+            ->orderBy('created_at', 'ASC')
+            ->get()
+            ->getResult();
+    }
 
-<a href="<?= base_url('doctor/medical_history') ?>" class="btn btn-default">Kembali ke Daftar Pasien</a>
+    $data['history'] = $history;
+    $data['title'] = 'Detail Riwayat Medis';
+    $data['includes'] = ['doctor/medical_history_detail'];
+
+    return view('header', $data)
+         . view('index', $data)
+         . view('footer', $data);
+}

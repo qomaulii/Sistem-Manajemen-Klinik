@@ -308,14 +308,108 @@ class Patient extends BaseController
 
     public function history()
     {
-        $patient_id = session()->get('ba_user_id');
-        if (!$patient_id) return redirect()->to('account/login');
+        $patient_id = session()->get('ba_user_id') ?: session()->get('user_id');
+
+        if (!$patient_id) {
+            return redirect()->to('account/login');
+        }
 
         $db = \Config\Database::connect();
-        $data['visits'] = $db->table('patient_visits')->where('patient_id', $patient_id)->get()->getResult();
+
+        $visits = $db->table('patient_visits pv')
+            ->select("
+                pv.*,
+                dokter.first_name AS doctor_first_name,
+                dokter.last_name AS doctor_last_name,
+                b.bill_id,
+                b.total_amount,
+                b.payment_method,
+                b.payment_status AS billing_status,
+                b.paid_date
+            ")
+            ->join('userdata dokter', 'dokter.user_id = pv.doctor_id', 'left')
+            ->join('billing b', 'b.visit_id = pv.visit_id', 'left')
+            ->where('pv.patient_id', $patient_id)
+            ->orderBy('pv.register_time', 'DESC')
+            ->get()
+            ->getResult();
+
+        foreach ($visits as $v) {
+            $v->records = $db->table('medical_records mr')
+                ->select("
+                    mr.*,
+                    dokter.first_name AS doc_first,
+                    dokter.last_name AS doc_last
+                ")
+                ->join('userdata dokter', 'dokter.user_id = mr.doctor_id', 'left')
+                ->where('mr.visit_id', $v->visit_id)
+                ->orderBy('mr.created_at', 'DESC')
+                ->get()
+                ->getResult();
+
+            $v->details = $db->table('medical_record_details mrd')
+                ->select('mrd.*')
+                ->join('medical_records mr', 'mr.record_id = mrd.record_id', 'left')
+                ->where('mr.visit_id', $v->visit_id)
+                ->orderBy('mrd.created_at', 'ASC')
+                ->get()
+                ->getResult();
+
+            $v->items = $db->table('visit_items')
+                ->where('visit_id', $v->visit_id)
+                ->orderBy('item_type', 'ASC')
+                ->orderBy('visit_item_id', 'ASC')
+                ->get()
+                ->getResult();
+
+            $v->medicines = $db->table('visit_items')
+                ->where('visit_id', $v->visit_id)
+                ->where('item_type', 'OBAT')
+                ->orderBy('visit_item_id', 'ASC')
+                ->get()
+                ->getResult();
+
+            $v->labs = $db->table('lab_requests lr')
+                ->select("
+                    lr.*,
+                    si.item_name AS test_name,
+                    dokter.first_name AS doctor_first_name,
+                    dokter.last_name AS doctor_last_name
+                ")
+                ->join('service_items si', 'si.item_id = lr.test_id AND si.item_type = "LAB"', 'left')
+                ->join('userdata dokter', 'dokter.user_id = lr.doctor_id', 'left')
+                ->where('lr.visit_id', $v->visit_id)
+                ->orderBy('lr.created_at', 'ASC')
+                ->get()
+                ->getResult();
+
+            $v->xrays = $db->table('xray_requests xr')
+                ->select("
+                    xr.*,
+                    si.item_name AS xray_name,
+                    dokter.first_name AS doctor_first_name,
+                    dokter.last_name AS doctor_last_name
+                ")
+                ->join('service_items si', 'si.item_id = xr.xray_id AND si.item_type = "XRAY"', 'left')
+                ->join('userdata dokter', 'dokter.user_id = xr.doctor_id', 'left')
+                ->where('xr.visit_id', $v->visit_id)
+                ->orderBy('xr.created_at', 'ASC')
+                ->get()
+                ->getResult();
+
+            $v->billing = $db->table('billing')
+                ->where('visit_id', $v->visit_id)
+                ->get()
+                ->getRow();
+        }
+
+        $data['visits'] = $visits;
         $data['title'] = 'Riwayat & Hasil Pemeriksaan';
         $data['includes'] = ['patient/history'];
-        return view('header', $data) . view('index', $data) . view('footer', $data);
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
     }
 
     private function _generate_queue_number()

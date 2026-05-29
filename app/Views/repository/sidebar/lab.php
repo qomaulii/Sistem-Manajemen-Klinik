@@ -21,7 +21,7 @@
           <tr>
             <td style="padding: 10px 15px;">
               <span class="glyphicon glyphicon-edit text-info"></span>
-              <a href="<?= base_url('test/queue') ?>">Input Hasil Lab</a>
+              <a href="<?= base_url('test/input_result') ?>">Input Hasil Lab</a>
             </td>
           </tr>
 

@@ -305,6 +305,8 @@ class Doctor extends BaseController
             ->getResult();
     }
 
+    
+
     private function _createMedicalRecord($visitId, $patientId, $doctorId, $catatan)
     {
         $db = \Config\Database::connect();
@@ -658,11 +660,11 @@ class Doctor extends BaseController
             ->with('message', 'Permintaan x-ray berhasil dikirim ke radiologi.');
     }
 
-    public function add_medical_note($patient_id = 0)
+    public function add_medical_note($patient_id)
     {
         $this->_check_access();
-
         $db = \Config\Database::connect();
+
         $doctorId = session()->get('ba_user_id');
 
         $patient = $db->table('userdata')
@@ -675,75 +677,57 @@ class Doctor extends BaseController
                 ->with('error', 'Data pasien tidak ditemukan.');
         }
 
-        $todayStart = strtotime('today midnight');
-        $todayEnd   = strtotime('tomorrow midnight') - 1;
-
         $visit = $db->table('patient_visits')
             ->where('patient_id', $patient_id)
-            ->where('doctor_id', $doctorId)
-            ->where('register_time >=', $todayStart)
-            ->where('register_time <=', $todayEnd)
-            ->where('status !=', 'Batal')
             ->orderBy('visit_id', 'DESC')
             ->get()
             ->getRow();
 
         if (!$visit) {
-            $visit = $db->table('patient_visits')
-                ->where('patient_id', $patient_id)
-                ->orderBy('visit_id', 'DESC')
-                ->get()
-                ->getRow();
-        }
-
-        if (!$visit) {
             return redirect()->to('doctor/medical_history_detail/' . $patient_id)
-                ->with('error', 'Pasien ini belum memiliki data kunjungan.');
+                ->with('error', 'Pasien belum memiliki data antrean/kunjungan.');
         }
 
-        // Di halaman tambah catatan medis, ambil PEMERIKSAAN saja.
-        // Obat, Lab, dan X-Ray tetap di menu masing-masing.
-        $pemeriksaanItems = $db->table('service_items')
-            ->where('item_type', 'PEMERIKSAAN')
-            ->where('is_active', 1)
-            ->orderBy('item_name', 'ASC')
-            ->get()
-            ->getResult();
+        if ($this->request->is('post')) {
+            $keluhan = trim($this->request->getPost('keluhan'));
+            $diagnosis = trim($this->request->getPost('diagnosis'));
+            $hasilPemeriksaan = trim($this->request->getPost('hasil_pemeriksaan'));
+            $catatanTindakan = trim($this->request->getPost('catatan_tindakan'));
 
-        if (strtolower($this->request->getMethod()) === 'post') {
-            $deskripsiUmum = $this->request->getPost('deskripsi_umum');
-            $itemIds       = $this->request->getPost('item_ids') ?? [];
-            $qtys          = $this->request->getPost('qty') ?? [];
-            $resultNotes   = $this->request->getPost('result_note') ?? [];
-
-            if (empty($deskripsiUmum) && empty($itemIds)) {
+            if ($keluhan === '' || $diagnosis === '') {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Isi deskripsi atau tambahkan minimal satu pemeriksaan/tindakan.');
+                    ->with('error', 'Keluhan/gejala dan diagnosis wajib diisi.');
             }
 
             $db->transStart();
 
             $db->table('medical_records')->insert([
-                'visit_id'           => $visit->visit_id,
-                'patient_id'         => $patient_id,
-                'doctor_id'          => $doctorId,
-                'keluhan'            => '',
-                'diagnosis'          => '',
-                'hasil_pemeriksaan'  => '',
-                'catatan_tindakan'   => $deskripsiUmum,
-                'created_at'         => time()
+                'visit_id'            => $visit->visit_id,
+                'patient_id'          => $patient_id,
+                'doctor_id'           => $doctorId,
+                'keluhan'             => $keluhan,
+                'diagnosis'           => $diagnosis,
+                'hasil_pemeriksaan'   => $hasilPemeriksaan,
+                'catatan_tindakan'    => $catatanTindakan,
+                'created_at'          => time()
             ]);
 
             $recordId = $db->insertID();
 
-            foreach ($itemIds as $index => $itemId) {
+            $itemIds = $this->request->getPost('item_id') ?? [];
+            $qtys = $this->request->getPost('qty') ?? [];
+            $notes = $this->request->getPost('result_note') ?? [];
+
+            foreach ($itemIds as $i => $itemId) {
                 $itemId = (int) $itemId;
+
+                if ($itemId <= 0) {
+                    continue;
+                }
 
                 $item = $db->table('service_items')
                     ->where('item_id', $itemId)
-                    ->where('item_type', 'PEMERIKSAAN')
-                    ->where('is_active', 1)
                     ->get()
                     ->getRow();
 
@@ -751,60 +735,70 @@ class Doctor extends BaseController
                     continue;
                 }
 
-                $qty = isset($qtys[$index]) ? (int) $qtys[$index] : 1;
+                $qty = (int) ($qtys[$i] ?? 1);
 
                 if ($qty <= 0) {
                     $qty = 1;
                 }
 
-                $resultNote = $resultNotes[$index] ?? '';
-                $subtotal = $item->price * $qty;
+                $price = (float) ($item->price ?? 0);
+                $subtotal = $price * $qty;
+                $resultNote = trim($notes[$i] ?? '');
 
-                // Untuk tagihan pembayaran
                 $db->table('visit_items')->insert([
                     'visit_id'   => $visit->visit_id,
-                    'patient_id' => $patient_id,
-                    'doctor_id'  => $doctorId,
                     'item_id'    => $item->item_id,
                     'item_type'  => $item->item_type,
                     'item_name'  => $item->item_name,
-                    'price'      => $item->price,
+                    'price'      => $price,
                     'qty'        => $qty,
                     'subtotal'   => $subtotal,
                     'note'       => $resultNote,
-                    'status'     => 'Diajukan',
                     'created_at' => time()
                 ]);
 
                 $visitItemId = $db->insertID();
 
-                // Untuk detail rekam medis, tanpa harga
                 $db->table('medical_record_details')->insert([
                     'record_id'     => $recordId,
                     'visit_item_id' => $visitItemId,
-                    'item_type'     => 'PEMERIKSAAN',
+                    'item_type'     => $item->item_type,
                     'item_name'     => $item->item_name,
+                    'qty'           => $qty,
                     'result_note'   => $resultNote,
                     'created_at'    => time()
                 ]);
             }
+
+            $db->table('patient_visits')
+                ->where('visit_id', $visit->visit_id)
+                ->update([
+                    'status' => 'Telah Diurus'
+                ]);
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Gagal menyimpan catatan medis.');
+                    ->with('error', 'Catatan medis gagal disimpan.');
             }
 
             return redirect()->to('doctor/medical_history_detail/' . $patient_id)
-                ->with('success', 'Catatan medis berhasil ditambahkan.');
+                ->with('success', 'Catatan medis berhasil disimpan.');
         }
+
+        $procedures = $db->table('service_items')
+            ->whereNotIn('item_type', ['OBAT', 'LAB', 'XRAY'])
+            ->where('is_active', 1)
+            ->orderBy('item_name', 'ASC')
+            ->get()
+            ->getResult();
 
         $data['title'] = 'Tambah Catatan Medis';
         $data['patient'] = $patient;
         $data['visit'] = $visit;
-        $data['pemeriksaanItems'] = $pemeriksaanItems;
+        $data['procedures'] = $procedures;
         $data['includes'] = ['doctor/add_medical_note'];
 
         return view('header', $data)

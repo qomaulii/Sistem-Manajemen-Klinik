@@ -1,30 +1,88 @@
-<div class="row">
-<?php if(!empty($xray->xray_id)): ?>
-  <div class="col col-md-8 well well-sm" style="padding: 20px;">
-    <?= form_open('xray/edit/'.$xray->xray_id, ["id" => "editXrayForm", "role" => "form"]) ?>
-      <fieldset>
-        <legend>- Edit X-Ray Type:</legend>
-        <div class="form-group" style="margin-bottom: 15px;">
-            <div class="col-md-6"><input type="text" name='xray_name_en' value="<?= set_value('xray_name_en', $xray->xray_name_en) ?>" class='form-control' placeholder='X-ray Name' required autofocus /></div>
-            <div class="col-md-6"><input type="text" name='xray_name_fa' value="<?= set_value('xray_name_fa', $xray->xray_name_fa) ?>" class='form-control' placeholder='نام اکسری' required /></div>
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-            <div class="col-md-6"><input type="text" name='category' value="<?= set_value('category', $xray->category) ?>" class='form-control' placeholder='Category' /></div>
-            <div class="col-md-6"><input type="number" name='price' value="<?= set_value('price', $xray->price) ?>" class='form-control' placeholder='Price' required /></div>
-        </div>
-        <div class="clearfix"></div>
-      </fieldset>
-      <fieldset>
-        <legend>- Memo:</legend>
-        <textarea name="memo" class="form-control" rows="8" style="height: 150px;"><?= set_value('memo', $xray->memo) ?></textarea>
-      </fieldset>
-      <div class="form-group" style="margin-top: 20px;">
-        <div class="col-md-6"><input type="submit" value='Update' class="form-control btn btn-info" /></div>
-        <div class="col-md-6"><a href="<?= base_url('xray') ?>" class="form-control btn btn-info text-center" style="line-height: 26px;">Cancel</a></div>
-      </div>
-    <?= form_close() ?>
-  </div>
-<?php else: ?>
-  <div class="alert alert-danger text-center"><h1>Xray Not Found</h1></div>
+<?php
+    $namaPasien = trim(($request->patient_first_name ?? '') . ' ' . ($request->patient_last_name ?? ''));
+    $namaDokter = trim(($request->doctor_first_name ?? '') . ' ' . ($request->doctor_last_name ?? ''));
+?>
+
+<?php if (session()->getFlashdata('error')) : ?>
+    <div class="alert alert-danger">
+        <?= session()->getFlashdata('error') ?>
+    </div>
 <?php endif; ?>
+
+<?php if (session()->getFlashdata('message')) : ?>
+    <div class="alert alert-success">
+        <?= session()->getFlashdata('message') ?>
+    </div>
+<?php endif; ?>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <?= esc($title) ?>
+    </div>
+
+    <div class="panel-body">
+        <p>
+            <strong>No. Antrean:</strong> <?= esc($request->queue_number ?? '-') ?><br>
+            <strong>Nama Pasien:</strong> <?= esc($namaPasien ?: '-') ?><br>
+            <strong>Dokter:</strong> <?= esc($namaDokter ?: '-') ?><br>
+            <strong>Pemeriksaan X-Ray:</strong> <?= esc($request->xray_name ?: '-') ?><br>
+            <strong>Catatan Dokter:</strong> <?= esc($request->doctor_notes ?: '-') ?>
+        </p>
+
+        <hr>
+
+        <?= form_open_multipart($formAction) ?>
+            <?= csrf_field() ?>
+
+            <div class="form-group">
+                <label>Hasil X-Ray:</label>
+                <textarea 
+                    name="result_note" 
+                    class="form-control" 
+                    rows="5" 
+                    required
+                    placeholder="Masukkan hasil pemeriksaan x-ray/radiologi..."
+                ><?= old('result_note', $request->result_note ?? '') ?></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Bukti Hasil / Keterangan Tambahan:</label>
+                <textarea 
+                    name="proof_note" 
+                    class="form-control" 
+                    rows="3"
+                    placeholder="Contoh: nomor dokumen, keterangan file, atau catatan tambahan hasil x-ray."
+                ><?= old('proof_note', $request->proof_note ?? '') ?></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Bukti Hasil X-Ray:</label>
+                <input 
+                    type="file" 
+                    name="proof_file" 
+                    class="form-control"
+                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                >
+
+                <small class="text-muted">
+                    Format yang boleh: JPG, JPEG, PNG, PDF, DOC, DOCX. Maksimal 5 MB.
+                </small>
+
+                <?php if (!empty($request->proof_file)) : ?>
+                    <br><br>
+                    <a href="<?= base_url($request->proof_file) ?>" target="_blank" class="btn btn-info btn-xs">
+                        Lihat File Bukti Sebelumnya
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <?= esc($buttonText) ?>
+            </button>
+
+            <a href="<?= base_url('xray/queue') ?>" class="btn btn-default">
+                Kembali
+            </a>
+        <?= form_close() ?>
+    </div>
 </div>

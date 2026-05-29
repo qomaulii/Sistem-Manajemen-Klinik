@@ -236,6 +236,25 @@ class Xray extends BaseController
         }
     }
 
+    public function results()
+    {
+        $check = $this->_check_access();
+        if ($check !== true) return $check;
+
+        $data['results'] = $this->_xrayBaseQuery()
+            ->where('xr.status', 'Selesai')
+            ->orderBy('xr.completed_at', 'DESC')
+            ->get()
+            ->getResult();
+
+        $data['title'] = 'Lihat Daftar X-Ray';
+        $data['includes'] = ['xray/results_list'];
+
+        return view('header', $data)
+            . view('index', $data)
+            . view('footer', $data);
+    }
+
     public function deletedpi($xray_patient_id)
     {
         if ($this->request->getMethod() === 'post') {
@@ -399,32 +418,83 @@ class Xray extends BaseController
             . view('footer', $data);
     }
 
-    public function results()
+    private function _uploadXrayProof($oldFile = null)
     {
-        $check = $this->_check_access();
-        if ($check !== true) return $check;
+        $file = $this->request->getFile('proof_file');
 
-        $data['results'] = $this->_xrayBaseQuery()
-            ->where('xr.status', 'Selesai')
-            ->orderBy('xr.completed_at', 'DESC')
-            ->get()
-            ->getResult();
+        if (!$file || $file->getError() === 4) {
+            return $oldFile;
+        }
 
-        $data['title'] = 'Lihat Daftar X-Ray';
-        $data['includes'] = ['xray/results_list'];
+        if (!$file->isValid()) {
+            throw new \RuntimeException('File bukti x-ray tidak valid.');
+        }
 
-        return view('header', $data)
-            . view('index', $data)
-            . view('footer', $data);
+        $allowedExt = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'];
+        $ext = strtolower($file->getClientExtension());
+
+        if (!in_array($ext, $allowedExt)) {
+            throw new \RuntimeException('Format file harus jpg, jpeg, png, pdf, doc, atau docx.');
+        }
+
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Ukuran file maksimal 5 MB.');
+        }
+
+        $uploadPath = FCPATH . 'uploads/xray_results/';
+
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        $file->move($uploadPath, $newName);
+
+        if (!empty($oldFile) && file_exists(FCPATH . $oldFile)) {
+            unlink(FCPATH . $oldFile);
+        }
+
+        return 'uploads/xray_results/' . $newName;
     }
 
-    public function input_result($request_id)
+    public function input_result($request_id = null)
     {
         $check = $this->_check_access();
         if ($check !== true) return $check;
 
         $db = \Config\Database::connect();
 
+        /*
+        * MODE 1:
+        * Kalau masuk dari menu utama xray/input_result,
+        * request_id masih kosong.
+        * Jadi tampilkan form pencarian pasien dulu.
+        */
+        if (empty($request_id)) {
+            $requests = $this->_xrayBaseQuery()
+                ->whereIn('xr.status', ['Pending', 'Menunggu'])
+                ->orderBy('xr.created_at', 'ASC')
+                ->get()
+                ->getResult();
+
+            $data['title'] = 'Input Hasil X-Ray';
+            $data['request'] = null;
+            $data['requests'] = $requests;
+            $data['formAction'] = '';
+            $data['buttonText'] = 'Lanjut Input Hasil';
+            $data['includes'] = ['xray/input_result'];
+
+            return view('header', $data)
+                . view('index', $data)
+                . view('footer', $data);
+        }
+
+        /*
+        * MODE 2:
+        * Kalau masuk dari daftar antrean,
+        * request_id sudah ada.
+        * Jadi langsung buka form pasien yang dipilih.
+        */
         $request = $this->_getXrayRequest($request_id);
 
         if (!$request) {
@@ -442,11 +512,20 @@ class Xray extends BaseController
                     ->with('error', 'Hasil x-ray wajib diisi.');
             }
 
+            try {
+                $proofFile = $this->_uploadXrayProof($request->proof_file ?? null);
+            } catch (\RuntimeException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $e->getMessage());
+            }
+
             $db->table('xray_requests')
                 ->where('request_id', $request_id)
                 ->update([
                     'result_note'  => $resultNote,
                     'proof_note'   => $proofNote,
+                    'proof_file'   => $proofFile,
                     'status'       => 'Selesai',
                     'completed_at' => time()
                 ]);
@@ -460,6 +539,7 @@ class Xray extends BaseController
 
         $data['title'] = 'Input Hasil X-Ray';
         $data['request'] = $request;
+        $data['requests'] = [];
         $data['formAction'] = base_url('xray/input_result/' . $request_id);
         $data['buttonText'] = 'Simpan Hasil X-Ray';
         $data['includes'] = ['xray/input_result'];
@@ -493,11 +573,20 @@ class Xray extends BaseController
                     ->with('error', 'Hasil x-ray wajib diisi.');
             }
 
+            try {
+                $proofFile = $this->_uploadXrayProof($request->proof_file ?? null);
+            } catch (\RuntimeException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $e->getMessage());
+            }
+
             $db->table('xray_requests')
                 ->where('request_id', $request_id)
                 ->update([
                     'result_note'  => $resultNote,
                     'proof_note'   => $proofNote,
+                    'proof_file'   => $proofFile,
                     'status'       => 'Selesai',
                     'completed_at' => time()
                 ]);
